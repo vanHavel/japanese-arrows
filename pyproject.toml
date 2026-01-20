@@ -34,5 +34,6 @@ lint = [
     "ruff>=0.14.13",
 ]
 tests = [
+    "hypothesis>=6.150.2",
     "pytest>=9.0.2",
 ]
