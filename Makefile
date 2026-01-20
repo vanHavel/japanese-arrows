@@ -9,3 +9,6 @@ lint:
 typecheck:
 	uv run --group lint mypy .
 
+test:
+	uv run --group tests pytest
+
