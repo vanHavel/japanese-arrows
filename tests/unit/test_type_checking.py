@@ -158,7 +158,7 @@ def test_check_rule_valid(
     # Variable p refers to the p in ExistsPosition
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant(5))
 
-    rule = Rule(cond, [concl])
+    rule = Rule("test-rule", cond, [concl])
     check_rule(rule, constants, functions, relations)
 
 
@@ -172,7 +172,7 @@ def test_check_rule_undefined_variable_in_conclusion(
     cond = ExistsPosition([p], Equality(p, p))  # dummy condition
 
     concl = SetVal(ConclusionVariable("q"), ConclusionConstant(5))
-    rule = Rule(cond, [concl])
+    rule = Rule("test-rule", cond, [concl])
 
     with pytest.raises(TypeError, match="Undefined variable in conclusion: q"):
         check_rule(rule, constants, functions, relations)
@@ -188,7 +188,7 @@ def test_check_rule_type_mismatch_conclusion(
     cond = ExistsPosition([p], Equality(p, p))
 
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant("OOB"))
-    rule = Rule(cond, [concl])
+    rule = Rule("test-rule", cond, [concl])
 
     with pytest.raises(TypeError, match="SetVal value must be Number, got Position"):
         check_rule(rule, constants, functions, relations)
@@ -213,7 +213,7 @@ def test_check_rule_calculation_conclusion(
 
     concl_calc = SetVal(ConclusionVariable("p"), Calculation("+", ConclusionVariable("n"), ConclusionConstant(1)))
 
-    rule = Rule(cond_bind, [concl_calc])
+    rule = Rule("test-rule", cond_bind, [concl_calc])
     check_rule(rule, constants, functions, relations)
 
 
@@ -230,14 +230,14 @@ def test_check_rule_forall_scope_exclusion(
     cond = ExistsPosition([p], ForAllPosition([q], Equality(p, q)))
 
     concl = SetVal(ConclusionVariable("q"), ConclusionConstant(5))
-    rule = Rule(cond, [concl])
+    rule = Rule("test-rule", cond, [concl])
 
     with pytest.raises(TypeError, match="Undefined variable in conclusion: q"):
         check_rule(rule, constants, functions, relations)
 
     # However, 'p' should still be available
     concl_p = SetVal(ConclusionVariable("p"), ConclusionConstant(5))
-    rule_p = Rule(cond, [concl_p])
+    rule_p = Rule("test-rule", cond, [concl_p])
     check_rule(rule_p, constants, functions, relations)
 
 

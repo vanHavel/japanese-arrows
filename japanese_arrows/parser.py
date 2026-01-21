@@ -50,11 +50,12 @@ TOKEN_PATTERNS = [
     (r"\)", "RPAREN"),
     (r"\[", "LBRACKET"),
     (r"\]", "RBRACKET"),
+    (r":", "COLON"),
     (r",", "COMMA"),
     (r"\+", "PLUS"),
     (r"-", "MINUS"),
     (r"\d+", "NUMBER"),
-    (r"[a-zA-Z_]\w*", "IDENTIFIER"),
+    (r"[a-zA-Z_][\w-]*", "IDENTIFIER"),
 ]
 
 
@@ -96,9 +97,13 @@ class RuleParser:
         self.pos = 0
 
     def parse_rule(self) -> Rule:
+        name_token = self.consume("IDENTIFIER")
+        name = name_token.value
+        self.consume("COLON")
+
         condition = self.parse_formula()
         conclusions = self.parse_conclusions()
-        return Rule(condition, conclusions)
+        return Rule(name, condition, conclusions)
 
     def parse_conclusions(self) -> list[Conclusion]:
         conclusions = []

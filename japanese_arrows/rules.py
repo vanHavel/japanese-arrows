@@ -212,9 +212,10 @@ class OnlyVal(Conclusion):
 
 @dataclass
 class Rule:
+    name: str
     condition: Formula
     conclusions: list[Conclusion]
 
     def __str__(self) -> str:
         conclusions_str = "\n  - ".join(str(c) for c in self.conclusions)
-        return f"Condition: {self.condition}\nConclusions:\n  - {conclusions_str}"
+        return f"Rule {self.name}:\n  Condition: {self.condition}\n  Conclusions:\n    - {conclusions_str}"

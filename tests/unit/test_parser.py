@@ -1,3 +1,5 @@
+import pytest
+
 from japanese_arrows.parser import parse_rule, tokenize
 from japanese_arrows.rules import (
     And,
@@ -16,19 +18,19 @@ from japanese_arrows.rules import (
 
 
 def test_tokenize() -> None:
-    text = "exists p (points_at(p, q))"
+    text = "TEST_RULE: exists p (points_at(p, q))"
     tokens = tokenize(text)
-    assert len(tokens) == 10
-    assert tokens[0].type == "EXISTS"
-    assert tokens[1].type == "IDENTIFIER"
-    assert tokens[1].value == "p"
-    assert tokens[2].type == "LPAREN"
-    assert tokens[9].type == "RPAREN"
+    assert len(tokens) == 12
+    assert tokens[0].type == "IDENTIFIER"
+    assert tokens[0].value == "TEST_RULE"
+    assert tokens[1].type == "COLON"
+    assert tokens[2].type == "EXISTS"
 
 
 def test_parse_simple_relation() -> None:
-    text = "points_at(p, q) => set(p, 1)"
+    text = "TEST: points_at(p, q) => set(p, 1)"
     rule = parse_rule(text)
+    assert rule.name == "TEST"
 
     # Implicitly a Relation atom in condition?
     # Actually design says Rules are Condition \n => Conclusion
@@ -48,7 +50,7 @@ def test_parse_simple_relation() -> None:
 
 
 def test_parse_quantifiers() -> None:
-    text = "exists p,i (val(p) = i) => set(p, i)"
+    text = "TEST: exists p,i (val(p) = i) => set(p, i)"
     rule = parse_rule(text)
 
     # p is Position, i is Number
@@ -69,7 +71,7 @@ def test_parse_quantifiers() -> None:
 
 
 def test_parse_grouped_quantifiers_same_type() -> None:
-    text = "exists p,q (p = q) => set(p, 0)"
+    text = "TEST: exists p,q (p = q) => set(p, 0)"
     rule = parse_rule(text)
 
     assert isinstance(rule.condition, ExistsPosition)
@@ -79,7 +81,7 @@ def test_parse_grouped_quantifiers_same_type() -> None:
 
 
 def test_parse_logic_operators() -> None:
-    text = "exists p ((ahead(p) = 0) ^ (val(p) = 1)) => set(p, 1)"
+    text = "TEST: exists p ((ahead(p) = 0) ^ (val(p) = 1)) => set(p, 1)"
     rule = parse_rule(text)
 
     assert isinstance(rule.condition, ExistsPosition)
@@ -89,7 +91,7 @@ def test_parse_logic_operators() -> None:
 
 
 def test_parse_implication_desugar() -> None:
-    text = "exists p,q (points_at(p,q) -> val(p)=val(q)) => set(p, 0)"
+    text = "TEST: exists p,q (points_at(p,q) -> val(p)=val(q)) => set(p, 0)"
     rule = parse_rule(text)
 
     # points_at -> val=val  ==>  !points_at v val=val
@@ -108,7 +110,7 @@ def test_complex_conclusions() -> None:
     # set(p, i+1)
 
     text = """
-    exists p,i (val(p) = i)
+    TEST: exists p,i (val(p) = i)
     => exclude(p, >i)
     => only(p, [1, 2, i])
     => set(p, i+1)
@@ -138,7 +140,7 @@ def test_complex_conclusions() -> None:
 
 def test_complex_condition_terms() -> None:
     # next(next(p)) = q
-    text = "exists p,q (next(next(p)) = q) => set(p, 0)"
+    text = "TEST: exists p,q (next(next(p)) = q) => set(p, 0)"
     rule = parse_rule(text)
 
     assert isinstance(rule.condition, ExistsPosition)
@@ -157,7 +159,7 @@ def test_complex_condition_terms() -> None:
 
 
 def test_neq_sugar() -> None:
-    text = "exists p,q (p != q) => set(p, 0)"
+    text = "TEST: exists p,q (p != q) => set(p, 0)"
     rule = parse_rule(text)
 
     assert isinstance(rule.condition, ExistsPosition)
@@ -165,3 +167,16 @@ def test_neq_sugar() -> None:
     # p != q  ==>  !(p = q)
     assert isinstance(inner, Not)
     assert isinstance(inner.formula, Equality)
+
+
+def test_parse_rule_name() -> None:
+    text = "INFER-TOWER: exists p (ahead(p) = 0) => set(p, 0)"
+    rule = parse_rule(text)
+    assert rule.name == "INFER-TOWER"
+    assert isinstance(rule.condition, ExistsPosition)
+
+
+def test_parse_rule_missing_name_error() -> None:
+    text = "exists p (ahead(p) = 0) => set(p, 0)"
+    with pytest.raises(ValueError):
+        parse_rule(text)
