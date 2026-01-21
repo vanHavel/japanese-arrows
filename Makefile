@@ -1,14 +1,14 @@
 .PHONY: install lint typecheck
 
 install:
-	uv sync --group lint
+	uv sync --group dev
 
 lint:
-	uv run --group lint pre-commit run --all-files
+	uv run --group dev pre-commit run --all-files
 
 typecheck:
-	uv run --group lint mypy .
+	uv run --group dev mypy .
 
 test:
-	uv run --group tests pytest
+	uv run --group dev pytest
 

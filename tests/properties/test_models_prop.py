@@ -17,7 +17,7 @@ cell_strategy = st.builds(
 # Strategy for Puzzle
 
 
-@st.composite  # type: ignore[misc]
+@st.composite
 def puzzle_strategy(draw: Any) -> Puzzle:
     rows = draw(st.integers(min_value=1, max_value=10))
     cols = draw(st.integers(min_value=1, max_value=10))
@@ -30,11 +30,11 @@ def puzzle_strategy(draw: Any) -> Puzzle:
     return Puzzle(rows=rows, cols=cols, grid=grid)
 
 
-@given(cell_strategy)  # type: ignore[misc]
+@given(cell_strategy)
 def test_cell_roundtrip(cell: Cell) -> None:
     assert Cell.from_string(str(cell)) == cell
 
 
-@given(puzzle_strategy())  # type: ignore[misc]
+@given(puzzle_strategy())
 def test_puzzle_roundtrip(puzzle: Puzzle) -> None:
     assert Puzzle.from_string(puzzle.to_string()) == puzzle

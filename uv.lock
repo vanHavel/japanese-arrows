@@ -74,27 +74,23 @@ version = "0.1.0"
 source = { editable = "." }
 
 [package.dev-dependencies]
-lint = [
+dev = [
+    { name = "hypothesis" },
     { name = "mypy" },
     { name = "pre-commit" },
-    { name = "ruff" },
-]
-tests = [
-    { name = "hypothesis" },
     { name = "pytest" },
+    { name = "ruff" },
 ]
 
 [package.metadata]
 
 [package.metadata.requires-dev]
-lint = [
+dev = [
+    { name = "hypothesis", specifier = ">=6.150.2" },
     { name = "mypy", specifier = ">=1.19.1" },
     { name = "pre-commit", specifier = ">=4.1.0" },
-    { name = "ruff", specifier = ">=0.14.13" },
-]
-tests = [
-    { name = "hypothesis", specifier = ">=6.150.2" },
     { name = "pytest", specifier = ">=9.0.2" },
+    { name = "ruff", specifier = ">=0.14.13" },
 ]
 
 [[package]]
