@@ -63,14 +63,6 @@ def test_universe_check_simple() -> None:
 
     u = Universe(domain, constants, relations, functions)
 
-    # exists p (val(p) = 1)
-    # p is variable "p"
-    # term: FunctionCall("val", [ConditionVariable("p")])
-    # term: ConditionConstant(1)
-
-    # Construct formula manually
-    # ExistsPosition([ConditionVariable("p")], Equality(...))
-
     from japanese_arrows.rules import FunctionCall
 
     v_p = ConditionVariable("p")
@@ -83,8 +75,7 @@ def test_universe_check_simple() -> None:
     assert witness is not None
     assert witness["p"] == "p1"
 
-    # exists p (val(p) = 3) -> Should generally return None (no p satisfies)
-    # (unless val returns 3 for something else, but domain is p1,p2)
+    # exists p (val(p) = 3) -> Should return None
     t_3 = ConditionConstant(3)
     formula_false = ExistsPosition([v_p], Equality(t_val_p, t_3))
     assert u.check(formula_false) is None
@@ -132,17 +123,6 @@ def test_universe_quantifier_exclusions() -> None:
     assert u.check(formula_false) is None
 
     # exists p (p != OOB) -> should be true (p=p1)
-    # p != OOB is Not(Equality(p, OOB)) (simplified)
-    # Actually let's just check p = p1 for simplicity
-    # c_p1 = ConditionConstant("p1")  # treating string literal as value if not in constants
-    # Wait, ConditionConstant value can be anything. But parser handles it.
-    # Here raw construction.
-
-    # Let's say check p=p1
-    # We need to make sure "p1" is treated as a value.
-    # If not in constants, ConditionConstant value is just the value.
-    # "p1" string
-
     formula_true = ExistsPosition([v_p], Equality(v_p, ConditionConstant("p1")))
 
     witness = u.check(formula_true)

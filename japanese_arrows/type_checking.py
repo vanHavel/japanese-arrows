@@ -121,8 +121,6 @@ def _check_conclusion(conclusion: Conclusion, constants: dict[str, Type], scope:
             raise TypeError(f"ExcludeVal position must be Position, got {pos_type.value}")
 
         val_type = _infer_conclusion_term_type(conclusion.value, constants, scope)
-        # Value can be Number or generally Checked against operator.
-        # Assuming Number for puzzles typically.
         if val_type != Type.NUMBER:
             raise TypeError(f"ExcludeVal value must be Number, got {val_type.value}")
 
@@ -147,7 +145,6 @@ def _infer_conclusion_term_type(term: ConclusionTerm, constants: dict[str, Type]
         return scope[term.name]
 
     elif isinstance(term, ConclusionConstant):
-        # Similar logic to ConditionConstant
         val = term.value
         if isinstance(val, int):
             return Type.NUMBER

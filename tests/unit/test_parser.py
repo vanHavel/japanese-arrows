@@ -32,10 +32,7 @@ def test_parse_simple_relation() -> None:
     rule = parse_rule(text)
     assert rule.name == "TEST"
 
-    # Implicitly a Relation atom in condition?
-    # Actually design says Rules are Condition \n => Conclusion
-    # But for "points_at(p, q)" as a condition, it's a Relation.
-
+    # Verify Relation atom in condition
     assert isinstance(rule.condition, Relation)
     assert rule.condition.relation == "points_at"
     assert len(rule.condition.args) == 2
@@ -53,9 +50,7 @@ def test_parse_quantifiers() -> None:
     text = "TEST: exists p,i (val(p) = i) => set(p, i)"
     rule = parse_rule(text)
 
-    # p is Position, i is Number
-    # Should be ExistsPos([p], ExistsNum([i], Equality...))
-
+    # Verify existential prefix variables are typed correctly
     assert isinstance(rule.condition, ExistsPosition)
     assert len(rule.condition.variables) == 1
     assert rule.condition.variables[0].name == "p"
@@ -101,7 +96,7 @@ def test_parse_implication_desugar() -> None:
     assert isinstance(inner, Or)
     assert len(inner.formulas) == 2
     assert isinstance(inner.formulas[0], Not)
-    # inner.formulas[1] is Equality
+    assert isinstance(inner.formulas[1], Equality)
 
 
 def test_complex_conclusions() -> None:

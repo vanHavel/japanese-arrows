@@ -115,11 +115,6 @@ class RuleParser:
     def parse_conclusion(self) -> Conclusion:
         token = self.consume("IDENTIFIER", "SET", "EXCLUDE", "ONLY")
 
-        # Determine type based on name or token type if keyword
-        # The keywords set, exclude, only are identifiers in the regex if not strictly matched?
-        # Wait, I have specific keywords for SET, EXCLUDE, ONLY in regex.
-        # But 'set' matches 'set' keyword pattern before IDENTIFIER.
-
         if token.type == "SET":
             self.consume("LPAREN")
             pos = self.parse_conclusion_term()
@@ -176,7 +171,6 @@ class RuleParser:
             val = self.consume("IDENTIFIER").value
             if val in ["OOB", "nil"]:
                 return ConclusionConstant(val)
-            # Check if it's a constant digit like '0' .. wait, digit is NUMBER
             return ConclusionVariable(val)
         else:
             raise ValueError(f"Unexpected token in conclusion term: {self.current_token()}")
@@ -188,8 +182,8 @@ class RuleParser:
         left = self.parse_disjunction()
         if self.match("IMPLIES"):
             self.consume("IMPLIES")
-            right = self.parse_implication()  # Right associative? Or parse_disjunction for non-associative?
-            # A -> B is desugared to !A v B
+            right = self.parse_implication()
+            # Desugar: A -> B becomes !A v B
             return Or([Not(left), right])
         return left
 
@@ -217,8 +211,6 @@ class RuleParser:
         if self.match("LPAREN"):
             self.consume("LPAREN")
             # Check if it's a parenthesized formula
-            # Design says: "After a (potentially grouped) quantifier, there are always parentheses"
-            # But here we might be inside one.
             f = self.parse_formula()
             self.consume("RPAREN")
             return f
@@ -236,7 +228,7 @@ class RuleParser:
 
     def parse_quantifier(self) -> Formula:
         is_forall = self.match("FORALL")
-        self.advance()  # consume quantifier keyword
+        self.advance()
 
         vars = []
         vars.append(self.consume("IDENTIFIER").value)
@@ -248,15 +240,7 @@ class RuleParser:
         formula = self.parse_formula()
         self.consume("RPAREN")
 
-        # Group variables by type (Position vs Number)
-        # Apply quantifiers in reverse order (inner to outer) or group them?
-        # The AST has lists of variables. We can group adjacent variables of same type.
-        # "exists p,q,i (phi)" -> ExistsPos([p,q], ExistsNum([i], phi))
-
-        # Reverse list to build from inside out if we want separate layers,
-        # but the AST supports multiple variables per quantifier.
-        # We should group consecutive variables of same type.
-
+        # Group consecutive variables of the same type to minimize AST depth
         grouped_quantifiers = []
         current_type = None
         current_vars: list[ConditionVariable] = []
@@ -304,16 +288,10 @@ class RuleParser:
             else:
                 return Relation(op, [left, right])
 
-        # If it's just a term, it must be a function call that acts as a predicate/relation?
-        # Or maybe it's a relation defined like points_at(p, q)
-        # parse_term parses FunctionCall. If the "function" is actually a relation, we need to convert it.
-        # Since FunctionCall and Relation both look like name(args), and we are in a formula context.
-
         if isinstance(left, FunctionCall):
-            # Treat as relation
+            # Treat as relation if it matches the name(args) pattern in formula context
             return Relation(left.name, left.args)
 
-        # If it's a boolean variable? Not supported by design docs, atomic formulas are relations.
         raise ValueError(f"Expected relation or equality, got {left}")
 
     def parse_term(self) -> ConditionTerm:
@@ -340,8 +318,8 @@ class RuleParser:
         return ConditionVariable(name)
 
     def _infer_var_type(self, name: str) -> str:
-        # "p,q,r... for position variables and i,j,k... for numeric vatiables."
-        if name and name[0] in "pqrs":  # extended heuristic could vary
+        # p,q,r... are Position, i,j,k... are Number
+        if name and name[0] in "pqrs":
             return "Position"
         return "Number"  # default or i,j,k
 
