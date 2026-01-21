@@ -2,17 +2,28 @@ from enum import Enum
 
 from japanese_arrows.rules import (
     And,
-    Atom,
+    Calculation,
+    Conclusion,
+    ConclusionConstant,
+    ConclusionTerm,
+    ConclusionVariable,
     ConditionConstant,
     ConditionTerm,
     ConditionVariable,
+    Equality,
+    ExcludeVal,
     ExistsNumber,
     ExistsPosition,
     ForAllNumber,
     ForAllPosition,
     Formula,
     FunctionCall,
+    Not,
+    OnlyVal,
     Or,
+    Relation,
+    Rule,
+    SetVal,
 )
 
 
@@ -32,6 +43,30 @@ FunctionSignature = tuple[list[Type], Type]
 RelationSignature = list[Type]
 
 
+def check_rule(
+    rule: Rule,
+    constants: dict[str, Type],
+    functions: dict[str, FunctionSignature],
+    relations: dict[str, RelationSignature],
+) -> None:
+    """
+    Checks if a rule is well-typed.
+    """
+    # 1. Check condition
+    check_condition(rule.condition, constants, functions, relations)
+
+    # 2. Gather variables from condition (Exists quantifiers)
+    # The rule applies effectively "For All" matches of the condition, so
+    # variables bound by Exists... in the condition become available in the conclusion
+    # for that specific match.
+    scope: dict[str, Type] = {}
+    _gather_condition_variables(rule.condition, scope)
+
+    # 3. Check conclusions
+    for conclusion in rule.conclusions:
+        _check_conclusion(conclusion, constants, scope)
+
+
 def check_condition(
     formula: Formula,
     constants: dict[str, Type],
@@ -45,6 +80,94 @@ def check_condition(
     _check_formula(formula, constants, functions, relations, scope={})
 
 
+def _gather_condition_variables(formula: Formula, scope: dict[str, Type]) -> None:
+    """
+    Recursively gathers variables bound by Exists quantifiers in the condition
+    into the scope for use in conclusions.
+    """
+    if isinstance(formula, (And, Or)):
+        for sub in formula.formulas:
+            _gather_condition_variables(sub, scope)
+    elif isinstance(formula, Not):
+        _gather_condition_variables(formula.formula, scope)
+    elif isinstance(formula, ExistsPosition):
+        for v in formula.variables:
+            scope[v.name] = Type.POSITION
+        _gather_condition_variables(formula.formula, scope)
+    elif isinstance(formula, ExistsNumber):
+        for v in formula.variables:
+            scope[v.name] = Type.NUMBER
+        _gather_condition_variables(formula.formula, scope)
+    elif isinstance(formula, (ForAllPosition, ForAllNumber)):
+        # Stop gathering at ForAll quantifiers.
+        # We only care about the existential prefix for conclusion scope.
+        return
+    # Atoms/Relations/Equality don't introduce new variables
+
+
+def _check_conclusion(conclusion: Conclusion, constants: dict[str, Type], scope: dict[str, Type]) -> None:
+    if isinstance(conclusion, SetVal):
+        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        if pos_type != Type.POSITION:
+            raise TypeError(f"SetVal position must be Position, got {pos_type.value}")
+
+        val_type = _infer_conclusion_term_type(conclusion.value, constants, scope)
+        if val_type != Type.NUMBER:
+            raise TypeError(f"SetVal value must be Number, got {val_type.value}")
+
+    elif isinstance(conclusion, ExcludeVal):
+        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        if pos_type != Type.POSITION:
+            raise TypeError(f"ExcludeVal position must be Position, got {pos_type.value}")
+
+        val_type = _infer_conclusion_term_type(conclusion.value, constants, scope)
+        # Value can be Number or generally Checked against operator.
+        # Assuming Number for puzzles typically.
+        if val_type != Type.NUMBER:
+            raise TypeError(f"ExcludeVal value must be Number, got {val_type.value}")
+
+    elif isinstance(conclusion, OnlyVal):
+        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        if pos_type != Type.POSITION:
+            raise TypeError(f"OnlyVal position must be Position, got {pos_type.value}")
+
+        for val in conclusion.values:
+            val_type = _infer_conclusion_term_type(val, constants, scope)
+            if val_type != Type.NUMBER:
+                raise TypeError(f"OnlyVal values must be Number, got {val_type.value}")
+    else:
+        raise TypeError(f"Unknown conclusion type: {type(conclusion)}")
+
+
+def _infer_conclusion_term_type(term: ConclusionTerm, constants: dict[str, Type], scope: dict[str, Type]) -> Type:
+    if isinstance(term, ConclusionVariable):
+        if term.name not in scope:
+            # In conclusions, variables MUST come from the condition's scope
+            raise TypeError(f"Undefined variable in conclusion: {term.name}")
+        return scope[term.name]
+
+    elif isinstance(term, ConclusionConstant):
+        # Similar logic to ConditionConstant
+        val = term.value
+        if isinstance(val, int):
+            return Type.NUMBER
+        if str(val) in constants:
+            return constants[str(val)]
+        return Type.UNKNOWN
+
+    elif isinstance(term, Calculation):
+        left_type = _infer_conclusion_term_type(term.left, constants, scope)
+        right_type = _infer_conclusion_term_type(term.right, constants, scope)
+
+        if left_type != Type.NUMBER or right_type != Type.NUMBER:
+            raise TypeError(f"Calculation operands must be Number, got {left_type.value} and {right_type.value}")
+
+        return Type.NUMBER
+
+    else:
+        raise TypeError(f"Unknown conclusion term type: {type(term)}")
+
+
 def _check_formula(
     formula: Formula,
     constants: dict[str, Type],
@@ -55,6 +178,9 @@ def _check_formula(
     if isinstance(formula, (And, Or)):
         for sub in formula.formulas:
             _check_formula(sub, constants, functions, relations, scope)
+
+    elif isinstance(formula, Not):
+        _check_formula(formula.formula, constants, functions, relations, scope)
 
     elif isinstance(formula, (ExistsPosition, ForAllPosition)):
         new_scope = scope.copy()
@@ -68,7 +194,13 @@ def _check_formula(
             new_scope[v.name] = Type.NUMBER
         _check_formula(formula.formula, constants, functions, relations, new_scope)
 
-    elif isinstance(formula, Atom):
+    elif isinstance(formula, Equality):
+        left_type = _infer_term_type(formula.left, constants, functions, scope)
+        right_type = _infer_term_type(formula.right, constants, functions, scope)
+        if left_type != right_type:
+            raise TypeError(f"Equality mismatch: {left_type.value} != {right_type.value} ({formula})")
+
+    elif isinstance(formula, Relation):
         if formula.relation not in relations:
             raise TypeError(f"Unknown relation: {formula.relation}")
 

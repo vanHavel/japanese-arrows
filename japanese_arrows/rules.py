@@ -76,8 +76,20 @@ class Formula(ABC):
 
 
 @dataclass
+class Not(Formula):
+    formula: Formula
+
+    def __str__(self) -> str:
+        return f"~({self.formula})"
+
+
 class Atom(Formula):
-    relation: str  # "=", "<", ">", "points_at", etc.
+    pass
+
+
+@dataclass
+class Relation(Atom):
+    relation: str  # "<", ">", "points_at", etc. (excluding "=")
     args: list[ConditionTerm]
 
     def __str__(self) -> str:
@@ -86,6 +98,15 @@ class Atom(Formula):
             return f"{self.args[0]} {self.relation} {self.args[1]}"
         args_str = ", ".join(str(arg) for arg in self.args)
         return f"{self.relation}({args_str})"
+
+
+@dataclass
+class Equality(Atom):
+    left: ConditionTerm
+    right: ConditionTerm
+
+    def __str__(self) -> str:
+        return f"{self.left} = {self.right}"
 
 
 @dataclass
