@@ -1,8 +1,12 @@
 import copy
 from enum import Enum
+from pathlib import Path
 from typing import Any, Callable, List, Set, Tuple, Union
 
+import yaml
+
 from japanese_arrows.models import Puzzle
+from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
     Calculation,
     Conclusion,
@@ -305,3 +309,37 @@ class Solver:
                 if cell.number is None and (cell.candidates is not None and len(cell.candidates) == 0):
                     return True
         return False
+
+
+def create_solver(max_complexity: int | None = None, rules_file: str | Path | None = None) -> Solver:
+    """
+    Create a Solver with rules up to the specified complexity level.
+
+    Args:
+        max_complexity: Maximum complexity level of rules to include.
+                       If None (default), includes all rules regardless of complexity.
+        rules_file: Path to the YAML rules file. If None, uses config/rules.yaml
+
+    Returns:
+        A Solver instance with the filtered rules
+    """
+    if rules_file is None:
+        # Default to config/rules.yaml relative to the project root
+        # Assuming this file is in japanese_arrows/solver.py
+        project_root = Path(__file__).parent.parent
+        rules_file = project_root / "config" / "rules.yaml"
+    else:
+        rules_file = Path(rules_file)
+
+    # Load rules from YAML file
+    with open(rules_file) as f:
+        rules_data = yaml.safe_load(f)
+
+    # Parse rules and filter by complexity
+    all_rules = []
+    for rule_dict in rules_data:
+        rule = parse_rule(rule_dict)
+        if max_complexity is None or rule.complexity <= max_complexity:
+            all_rules.append(rule)
+
+    return Solver(all_rules)

@@ -1,0 +1,8 @@
+# Rules for the Japanese Arrows puzzle solver
+# Each rule has a name, condition, complexity, and conclusions
+
+- name: ARROW-POINTS-OOB
+  condition: exists p (ahead(p) = 0)
+  complexity: 1
+  conclusions:
+    - set(p, 0)

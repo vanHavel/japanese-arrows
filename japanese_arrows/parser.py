@@ -348,6 +348,42 @@ class RuleParser:
         )
 
 
-def parse_rule(text: str) -> Rule:
-    parser = RuleParser(text)
-    return parser.parse_rule()
+def parse_rule(rule_dict: dict[str, object]) -> Rule:
+    """Parse a rule from a dictionary.
+
+    Expected format:
+        {
+            "name": "RULE-NAME",
+            "condition": "exists p (ahead(p) = 0)",
+            "complexity": 1,
+            "conclusions": ["set(p, 0)", "exclude(p, >1)"]
+        }
+    """
+    # Name is required
+    if "name" not in rule_dict or not rule_dict["name"]:
+        raise ValueError("Rule must have a 'name' field")
+    name = str(rule_dict["name"])
+
+    condition_str = str(rule_dict.get("condition", ""))
+    complexity_raw = rule_dict.get("complexity", 1)
+    complexity = int(complexity_raw) if isinstance(complexity_raw, (int, str)) else 1
+    conclusions_list = rule_dict.get("conclusions", [])
+
+    # Parse condition
+    if condition_str.strip():
+        condition_parser = RuleParser(condition_str)
+        condition = condition_parser.parse_formula()
+    else:
+        # Empty condition represents a tautology (always true)
+        from japanese_arrows.rules import ConditionConstant, Equality
+
+        condition = Equality(ConditionConstant(0), ConditionConstant(0))
+
+    # Parse conclusions
+    conclusions: list[Conclusion] = []
+    if isinstance(conclusions_list, list):
+        for conc_str in conclusions_list:
+            conc_parser = RuleParser(str(conc_str))
+            conclusions.append(conc_parser.parse_conclusion())
+
+    return Rule(name, condition, conclusions, complexity)

@@ -18,18 +18,22 @@ from japanese_arrows.rules import (
 
 
 def test_tokenize() -> None:
-    text = "TEST_RULE: exists p (points_at(p, q))"
+    text = "exists p (points_at(p, q))"
     tokens = tokenize(text)
-    assert len(tokens) == 12
-    assert tokens[0].type == "IDENTIFIER"
-    assert tokens[0].value == "TEST_RULE"
-    assert tokens[1].type == "COLON"
-    assert tokens[2].type == "EXISTS"
+    assert len(tokens) == 10
+    assert tokens[0].type == "EXISTS"
+    assert tokens[1].type == "IDENTIFIER"
+    assert tokens[1].value == "p"
 
 
 def test_parse_simple_relation() -> None:
-    text = "TEST: points_at(p, q) => set(p, 1)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "points_at(p, q)",
+            "conclusions": ["set(p, 1)"],
+        }
+    )
     assert rule.name == "TEST"
 
     # Verify Relation atom in condition
@@ -47,8 +51,13 @@ def test_parse_simple_relation() -> None:
 
 
 def test_parse_quantifiers() -> None:
-    text = "TEST: exists p,i (val(p) = i) => set(p, i)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,i (val(p) = i)",
+            "conclusions": ["set(p, i)"],
+        }
+    )
 
     # Verify existential prefix variables are typed correctly
     assert isinstance(rule.condition, ExistsPosition)
@@ -66,8 +75,13 @@ def test_parse_quantifiers() -> None:
 
 
 def test_parse_grouped_quantifiers_same_type() -> None:
-    text = "TEST: exists p,q (p = q) => set(p, 0)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,q (p = q)",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
 
     assert isinstance(rule.condition, ExistsPosition)
     assert len(rule.condition.variables) == 2
@@ -76,8 +90,13 @@ def test_parse_grouped_quantifiers_same_type() -> None:
 
 
 def test_parse_logic_operators() -> None:
-    text = "TEST: exists p ((ahead(p) = 0) ^ (val(p) = 1)) => set(p, 1)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p ((ahead(p) = 0) ^ (val(p) = 1))",
+            "conclusions": ["set(p, 1)"],
+        }
+    )
 
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
@@ -86,8 +105,13 @@ def test_parse_logic_operators() -> None:
 
 
 def test_parse_implication_desugar() -> None:
-    text = "TEST: exists p,q (points_at(p,q) -> val(p)=val(q)) => set(p, 0)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,q (points_at(p,q) -> val(p)=val(q))",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
 
     # points_at -> val=val  ==>  !points_at v val=val
 
@@ -100,17 +124,13 @@ def test_parse_implication_desugar() -> None:
 
 
 def test_complex_conclusions() -> None:
-    # exclude(p, >i)
-    # only(p, [1, 2, i])
-    # set(p, i+1)
-
-    text = """
-    TEST: exists p,i (val(p) = i)
-    => exclude(p, >i)
-    => only(p, [1, 2, i])
-    => set(p, i+1)
-    """
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,i (val(p) = i)",
+            "conclusions": ["exclude(p, >i)", "only(p, [1, 2, i])", "set(p, i+1)"],
+        }
+    )
 
     assert len(rule.conclusions) == 3
 
@@ -134,9 +154,13 @@ def test_complex_conclusions() -> None:
 
 
 def test_complex_condition_terms() -> None:
-    # next(next(p)) = q
-    text = "TEST: exists p,q (next(next(p)) = q) => set(p, 0)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,q (next(next(p)) = q)",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
 
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
@@ -154,8 +178,13 @@ def test_complex_condition_terms() -> None:
 
 
 def test_neq_sugar() -> None:
-    text = "TEST: exists p,q (p != q) => set(p, 0)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p,q (p != q)",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
 
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
@@ -165,13 +194,57 @@ def test_neq_sugar() -> None:
 
 
 def test_parse_rule_name() -> None:
-    text = "INFER-TOWER: exists p (ahead(p) = 0) => set(p, 0)"
-    rule = parse_rule(text)
+    rule = parse_rule(
+        {
+            "name": "INFER-TOWER",
+            "condition": "exists p (ahead(p) = 0)",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
     assert rule.name == "INFER-TOWER"
     assert isinstance(rule.condition, ExistsPosition)
 
 
 def test_parse_rule_missing_name_error() -> None:
-    text = "exists p (ahead(p) = 0) => set(p, 0)"
-    with pytest.raises(ValueError):
-        parse_rule(text)
+    with pytest.raises(ValueError, match="Rule must have a 'name' field"):
+        parse_rule(
+            {
+                "condition": "exists p (ahead(p) = 0)",
+                "conclusions": ["set(p, 0)"],
+            }
+        )
+
+
+def test_parse_rule_complexity() -> None:
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p (ahead(p) = 0)",
+            "complexity": 5,
+            "conclusions": ["set(p, 0)"],
+        }
+    )
+    assert rule.complexity == 5
+
+
+def test_parse_rule_default_complexity() -> None:
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "exists p (ahead(p) = 0)",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
+    assert rule.complexity == 1
+
+
+def test_parse_rule_empty_condition() -> None:
+    rule = parse_rule(
+        {
+            "name": "TEST",
+            "condition": "",
+            "conclusions": ["set(p, 0)"],
+        }
+    )
+    # Empty condition should be a tautology (0 = 0)
+    assert isinstance(rule.condition, Equality)

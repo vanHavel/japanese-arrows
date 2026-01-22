@@ -215,7 +215,13 @@ class Rule:
     name: str
     condition: Formula
     conclusions: list[Conclusion]
+    complexity: int = 1
 
     def __str__(self) -> str:
-        conclusions_str = "\n  - ".join(str(c) for c in self.conclusions)
-        return f"Rule {self.name}:\n  Condition: {self.condition}\n  Conclusions:\n    - {conclusions_str}"
+        conclusions_str = "\n    - ".join(str(c) for c in self.conclusions)
+        return (
+            f"Rule {self.name}:\n"
+            f"  Condition: {self.condition}\n"
+            f"  Complexity: {self.complexity}\n"
+            f"  Conclusions:\n    - {conclusions_str}"
+        )

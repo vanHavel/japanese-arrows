@@ -46,11 +46,14 @@ Conclusions:
  # Rule Syntax Details
  This section describes details of the string representation of rules, from which they can be parsed.
 
- Rules: are written as 
- NAME:
- Condition
-   => Conclusion1
-   => Conclusion2
+ Rules: are written as yaml as
+id:
+ name: Name
+ condition: Condition
+ complexity: Complexity
+ conclusions:
+   - Conclusion1
+   - Conclusion2
 
 Conditions:
  - Quantifers can be grouped as in exists p,i (phi). After a (potentially grouped) quantifier, there are always parentheses.

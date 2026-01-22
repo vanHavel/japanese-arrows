@@ -1,0 +1,14 @@
+# Test rules for the Japanese Arrows puzzle solver
+# This is a test-only configuration file
+
+- name: ARROW-POINTS-OOB
+  condition: exists p (ahead(p) = 0)
+  complexity: 1
+  conclusions:
+    - set(p, 0)
+
+- name: TEST-RULE-COMPLEXITY-2
+  condition: exists p,i (val(p) = i)
+  complexity: 2
+  conclusions:
+    - exclude(p, >i)
