@@ -66,6 +66,54 @@ def test_create_universe_geometry() -> None:
     assert func_ahead(((0, 2),)) == 0
 
 
+def test_create_universe_sees_distinct() -> None:
+    # 1x4 grid with some filled values: → → → →
+    # Values: 1, 2, 2, None
+    grid = [
+        [
+            Cell(Direction.EAST, 1),
+            Cell(Direction.EAST, 2),
+            Cell(Direction.EAST, 2),
+            Cell(Direction.EAST, None),
+        ]
+    ]
+    puzzle = Puzzle(rows=1, cols=4, grid=grid)
+    solver = Solver([])
+    solver._initialize_candidates(puzzle)
+    universe = solver._create_universe(puzzle)
+
+    func_sees_distinct = universe.functions["sees_distinct"]
+    # (0,0) points at (0,1)=2, (0,2)=2, (0,3)=None. Distinct filled values = {2}. Count = 1.
+    assert func_sees_distinct(((0, 0),)) == 1
+    # (0,1) points at (0,2)=2, (0,3)=None. Distinct = {2}. Count = 1.
+    assert func_sees_distinct(((0, 1),)) == 1
+    # (0,3) points at OOB so empty path. Count = 0.
+    assert func_sees_distinct(((0, 3),)) == 0
+    # OOB returns 0
+    assert func_sees_distinct(("OOB",)) == 0
+
+
+def test_create_universe_candidate_relation() -> None:
+    # 1x2 grid: one filled, one with candidates
+    grid = [[Cell(Direction.EAST, 1), Cell(Direction.EAST, None)]]
+    puzzle = Puzzle(rows=1, cols=2, grid=grid)
+    solver = Solver([])
+    solver._initialize_candidates(puzzle)  # (0,1) gets candidates {0, 1}
+    universe = solver._create_universe(puzzle)
+
+    rel_candidate = universe.relations["candidate"]
+    # (0,0) has number=1, so candidate(p,1) true, candidate(p,0) false
+    assert rel_candidate(((0, 0), 1))
+    assert not rel_candidate(((0, 0), 0))
+    # (0,1) has candidates {0, 1}
+    assert rel_candidate(((0, 1), 0))
+    assert rel_candidate(((0, 1), 1))
+    # OOB always false
+    assert not rel_candidate(("OOB", 0))
+    # nil always false
+    assert not rel_candidate(((0, 0), "nil"))
+
+
 def test_apply_simple_rule() -> None:
     # Rule: exists p (val(p) = nil) => set(p, 1)
     # Applying this to a puzzle with empty cells should set candidates to {1} (and number to 1)

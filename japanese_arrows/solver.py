@@ -3,11 +3,11 @@ from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List, Set, Tuple, Union
+from typing import Any, Callable, List, Set, Tuple
 
 import yaml
 
-from japanese_arrows.models import Puzzle
+from japanese_arrows.models import Direction, Puzzle
 from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
     Calculation,
@@ -243,11 +243,15 @@ class Solver:
             if isinstance(i, int):
                 constants[str(i)] = i
 
+        # Type alias for position
+        Position = tuple[int, int] | str  # (r, c) or "OOB"
+        Number = int | str  # int or "nil"
+
         # Helper for geometry
-        def get_next(p_tuple: Union[Tuple[int, int], str]) -> Any:
-            if p_tuple == "OOB":
+        def get_next(p: Position) -> Position:
+            if p == "OOB":
                 return "OOB"
-            r, c = p_tuple
+            r, c = p
             cell = puzzle.grid[r][c]
             dr, dc = cell.direction.delta
             nr, nc = r + dr, c + dc
@@ -256,79 +260,101 @@ class Solver:
                 return (nr, nc)
             return "OOB"
 
-        def get_path(p_tuple: Union[Tuple[int, int], str]) -> List[Tuple[int, int]]:
-            path = []
-            curr = get_next(p_tuple)
-            visited = {p_tuple} if isinstance(p_tuple, tuple) else set()
+        def get_path(p: Position) -> list[tuple[int, int]]:
+            path: list[tuple[int, int]] = []
+            curr = get_next(p)
+            visited: set[Position] = {p} if isinstance(p, tuple) else set()
 
             while curr != "OOB" and curr not in visited:
+                assert isinstance(curr, tuple)
                 path.append(curr)
                 visited.add(curr)
                 curr = get_next(curr)
             return path
 
-        # Functions
-        def func_next(args: Tuple[Any, ...]) -> Any:
-            return get_next(args[0])
+        # Functions with readable types
+        def next_pos(p: Position) -> Position:
+            return get_next(p)
 
-        def func_val(args: Tuple[Any, ...]) -> Any:
-            p = args[0]
+        def val(p: Position) -> Number:
             if p == "OOB":
                 return "nil"
             r, c = p
             cell = puzzle.grid[r][c]
             return cell.number if cell.number is not None else "nil"
 
-        def func_ahead(args: Tuple[Any, ...]) -> Any:
-            p = args[0]
+        def ahead(p: Position) -> int:
             if p == "OOB":
                 return 0
             return len(get_path(p))
 
-        def func_dir(args: Tuple[Any, ...]) -> Any:
-            p = args[0]
+        def dir_of(p: Position) -> Direction | str:
             if p == "OOB":
                 return "nil"
             r, c = p
             return puzzle.grid[r][c].direction
 
+        def sees_distinct(p: Position) -> int:
+            if p == "OOB":
+                return 0
+            path = get_path(p)
+            distinct_values: set[int] = set()
+            for pos in path:
+                r, c = pos
+                cell = puzzle.grid[r][c]
+                if cell.number is not None:
+                    distinct_values.add(cell.number)
+            return len(distinct_values)
+
         functions: dict[str, Callable[[Tuple[Any, ...]], Any]] = {
-            "next": func_next,
-            "val": func_val,
-            "ahead": func_ahead,
-            "dir": func_dir,
+            "next": lambda args: next_pos(args[0]),
+            "val": lambda args: val(args[0]),
+            "ahead": lambda args: ahead(args[0]),
+            "dir": lambda args: dir_of(args[0]),
+            "sees_distinct": lambda args: sees_distinct(args[0]),
         }
 
-        # Relations
-        def rel_points_at(args: Tuple[Any, ...]) -> bool:
-            p, q = args[0], args[1]
+        # Relations with readable types
+        def points_at(p: Position, q: Position) -> bool:
             if p == "OOB" or q == "OOB":
                 return False
             path = get_path(p)
             return q in path
 
-        def safe_compare(args: Tuple[Any, ...], op: str) -> bool:
-            a, b = args[0], args[1]
+        def compare(a: Number, b: Number, op: str) -> bool:
             if a == "nil" or b == "nil":
                 return False
-            a_int: int = a
-            b_int: int = b
+            assert isinstance(a, int) and isinstance(b, int)
             if op == "<":
-                return a_int < b_int
+                return a < b
             if op == ">":
-                return a_int > b_int
+                return a > b
             if op == "<=":
-                return a_int <= b_int
+                return a <= b
             if op == ">=":
-                return a_int >= b_int
+                return a >= b
+            return False
+
+        def candidate(p: Position, i: Number) -> bool:
+            if p == "OOB":
+                return False
+            if not isinstance(i, int):
+                return False
+            r, c = p
+            cell = puzzle.grid[r][c]
+            if cell.number is not None:
+                return cell.number == i
+            if cell.candidates is not None:
+                return i in cell.candidates
             return False
 
         relations: dict[str, Callable[[Tuple[Any, ...]], bool]] = {
-            "points_at": rel_points_at,
-            "<": lambda args: safe_compare(args, "<"),
-            ">": lambda args: safe_compare(args, ">"),
-            "<=": lambda args: safe_compare(args, "<="),
-            ">=": lambda args: safe_compare(args, ">="),
+            "points_at": lambda args: points_at(args[0], args[1]),
+            "candidate": lambda args: candidate(args[0], args[1]),
+            "<": lambda args: compare(args[0], args[1], "<"),
+            ">": lambda args: compare(args[0], args[1], ">"),
+            "<=": lambda args: compare(args[0], args[1], "<="),
+            ">=": lambda args: compare(args[0], args[1], ">="),
         }
 
         quantifier_exclusions = {

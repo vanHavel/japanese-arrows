@@ -14,6 +14,8 @@ The signature contains
 - binary relation points_at(p, q): the tuples (p, q) such that the arrow at p points at the arrow at q, directly or indirectly
 - constants OOB, nil, 0
 - unary function val(p): the numeric value of p, or nil if not set
+- unary function sees_distinct(p): the number of distinct numbers in arrows that p points at
+- binary relation candidate(p, i): the tuple (p, i) such that either the arrow at p has i as one of its options, or val(p) = i
 - binary relations <, >, <=, >= on digits with the usual interpretation
 - unary function ahead(p): number of arrows that p points at
 
@@ -64,7 +66,10 @@ Conditions:
  - t1 != t2 is sugar for !(t1 = t2)
 
  Full Example: (does not make logical sense, just for syntax)
- INFER-TOWER:
- exists p,q ((p != q ^ points_at(p, q)) -> forall i ((val(p) = i) -> val(q) = i)
-   => set(q, 3)
-   => exclude(p, >1)
+infer-tower:
+ name: Infer Tower
+ complexity: 1
+ condition: exists p,q ((p != q ^ points_at(p, q)) -> forall i ((val(p) = i) -> val(q) = i))
+   conclusions:
+   - set(q, 3)
+   - exclude(p, >1)
