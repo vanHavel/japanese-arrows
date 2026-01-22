@@ -92,9 +92,8 @@ class Puzzle:
                         path_values.add(target_cell.number)
 
                     # Move to next
-                    dr_next, dc_next = target_cell.direction.delta
                     curr_r, curr_c = next_r, next_c
-                    next_r, next_c = curr_r + dr_next, curr_c + dc_next
+                    next_r, next_c = curr_r + dr, curr_c + dc
 
                 if cell.number != len(path_values):
                     return False

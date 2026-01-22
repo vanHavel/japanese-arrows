@@ -6,3 +6,14 @@
   complexity: 1
   conclusions:
     - set(p, 0)
+- name: GRID-SIZE
+  condition: exists p,i (ahead(p) = i)
+  complexity: 1
+  conclusions:
+    - exclude(p, >i)
+- name: ADJACENT-ARROWS-SAME-DIRECTION
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i)
+  complexity: 2
+  conclusions:
+    - only(p, [i, i+1])
+  

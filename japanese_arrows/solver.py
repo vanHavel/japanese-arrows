@@ -78,10 +78,11 @@ class Solver:
             )
 
         # Check termination status
-        if self._is_solved(puzzle):
-            status = SolverStatus.SOLVED
-        elif self._has_contradiction(puzzle):
+        # Check termination status
+        if self._has_contradiction(puzzle):
             status = SolverStatus.NO_SOLUTION
+        elif self._is_solved(puzzle):
+            status = SolverStatus.SOLVED
         else:
             status = SolverStatus.UNDERCONSTRAINED
 
@@ -133,6 +134,9 @@ class Solver:
         r, c = p_val
         cell = puzzle.grid[r][c]
 
+        if cell.number is not None and cell.candidates is not None and not cell.candidates:
+            return False
+
         current_candidates = cell.candidates
         if cell.number is not None:
             current_candidates = {cell.number}
@@ -180,16 +184,11 @@ class Solver:
         if new_candidates != current_candidates:
             if not new_candidates:
                 cell.candidates = set()
-                cell.number = None
                 return True
 
             cell.candidates = new_candidates
             if len(new_candidates) == 1:
                 cell.number = next(iter(new_candidates))
-            elif cell.number is not None and cell.number not in new_candidates:
-                # Existing number removed from candidates -> Contradiction
-                cell.number = None
-                cell.candidates = set()
 
             return True
 
@@ -262,14 +261,17 @@ class Solver:
 
         def get_path(p: Position) -> list[tuple[int, int]]:
             path: list[tuple[int, int]] = []
-            curr = get_next(p)
-            visited: set[Position] = {p} if isinstance(p, tuple) else set()
+            if p == "OOB":
+                return path
 
-            while curr != "OOB" and curr not in visited:
-                assert isinstance(curr, tuple)
-                path.append(curr)
-                visited.add(curr)
-                curr = get_next(curr)
+            r, c = p
+            cell = puzzle.grid[r][c]
+            dr, dc = cell.direction.delta
+            curr_r, curr_c = r + dr, c + dc
+
+            while 0 <= curr_r < rows and 0 <= curr_c < cols:
+                path.append((curr_r, curr_c))
+                curr_r, curr_c = curr_r + dr, curr_c + dc
             return path
 
         # Functions with readable types
@@ -376,7 +378,7 @@ class Solver:
     def _has_contradiction(self, puzzle: Puzzle) -> bool:
         for row in puzzle.grid:
             for cell in row:
-                if cell.number is None and (cell.candidates is not None and len(cell.candidates) == 0):
+                if cell.candidates is not None and len(cell.candidates) == 0:
                     return True
         return False
 

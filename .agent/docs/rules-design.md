@@ -11,13 +11,13 @@ We allow an empty string as a short form for something always true (e.g. 0=0)
 
 The signature contains 
 - unary function next(p): the immediate next position the arrow at p is pointing at, or OOB if out of the grid. 
-- binary relation points_at(p, q): the tuples (p, q) such that the arrow at p points at the arrow at q, directly or indirectly
+- binary relation points_at(p, q): the tuples (p, q) such that the arrow at p points at the arrow at q, directly or indirectly, in a straight line
 - constants OOB, nil, 0
 - unary function val(p): the numeric value of p, or nil if not set
-- unary function sees_distinct(p): the number of distinct numbers in arrows that p points at
+- unary function sees_distinct(p): the number of distinct numbers in arrows that p points at, in a straight line
 - binary relation candidate(p, i): the tuple (p, i) such that either the arrow at p has i as one of its options, or val(p) = i
 - binary relations <, >, <=, >= on digits with the usual interpretation
-- unary function ahead(p): number of arrows that p points at
+- unary function ahead(p): number of cells in the grid in the direction p points at (straight line)
 
 The conclusions are a list. Each conclusion can be one of
 - set(p, d): position p must have value d
