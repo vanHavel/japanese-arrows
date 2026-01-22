@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional
+from typing import List, Optional, Set, Tuple
 
 
 class Direction(str, Enum):
@@ -13,11 +13,26 @@ class Direction(str, Enum):
     WEST = "←"
     NORTH_WEST = "↖"
 
+    @property
+    def delta(self) -> Tuple[int, int]:
+        mapping = {
+            Direction.NORTH: (-1, 0),
+            Direction.NORTH_EAST: (-1, 1),
+            Direction.EAST: (0, 1),
+            Direction.SOUTH_EAST: (1, 1),
+            Direction.SOUTH: (1, 0),
+            Direction.SOUTH_WEST: (1, -1),
+            Direction.WEST: (0, -1),
+            Direction.NORTH_WEST: (-1, -1),
+        }
+        return mapping[self]
+
 
 @dataclass
 class Cell:
     direction: Direction
     number: Optional[int] = None
+    candidates: Optional[Set[int]] = None
 
     def __str__(self) -> str:
         num_str = str(self.number) if self.number is not None else "."
@@ -45,6 +60,45 @@ class Puzzle:
         for i, row in enumerate(self.grid):
             if len(row) != self.cols:
                 raise ValueError(f"Row {i} has {len(row)} cols, expected {self.cols}")
+
+    def validate(self) -> bool:
+        """
+        Validates if the puzzle solution is correct according to Japanese Arrows rules.
+        Every cell's number must equal the count of distinct numbers it points at.
+        Returns False if any cell is unfilled or incorrect.
+        """
+        for r in range(self.rows):
+            for c in range(self.cols):
+                cell = self.grid[r][c]
+                if cell.number is None:
+                    return False
+
+                # Count distinct numbers in path
+                path_values = set()
+                curr_r, curr_c = r, c
+                visited = {(r, c)}
+
+                # Traverse
+                dr, dc = cell.direction.delta
+                next_r, next_c = curr_r + dr, curr_c + dc
+
+                while 0 <= next_r < self.rows and 0 <= next_c < self.cols:
+                    if (next_r, next_c) in visited:
+                        break  # Cycle
+                    visited.add((next_r, next_c))
+
+                    target_cell = self.grid[next_r][next_c]
+                    if target_cell.number is not None:
+                        path_values.add(target_cell.number)
+
+                    # Move to next
+                    dr_next, dc_next = target_cell.direction.delta
+                    curr_r, curr_c = next_r, next_c
+                    next_r, next_c = curr_r + dr_next, curr_c + dc_next
+
+                if cell.number != len(path_values):
+                    return False
+        return True
 
     def to_string(self) -> str:
         res = []

@@ -19,7 +19,7 @@ For more details on rules, check rules-design.md.
 The state of the solver is a puzzle instance, where each cell has a direction and a value. The directions are given and immutable. The value can be 
 - an integer, which means this cell is already filled
 - a list of integers, the options for this cell
-Initially, when the solver gets the puzzle, it replaces all cells without a number (free arrows) with an options list. The options contain all digits from 0 up to the max of rows and cols in the puzzle - 1.
+Initially, when the solver gets the puzzle, it replaces all cells without a number (free arrows) with an options list. The options contain all numbers from 0 up to the max of rows and cols in the puzzle - 1.
 The solver continues by narrowing down options according to rules. When only one option is left for a cell, it is replaced by an integer, signifying the cell is filled.
 
 

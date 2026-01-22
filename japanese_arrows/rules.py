@@ -173,7 +173,7 @@ class ForAllNumber(Quantifier):
 
 
 class Conclusion(ABC):
-    pass
+    position: ConclusionTerm
 
 
 @dataclass
