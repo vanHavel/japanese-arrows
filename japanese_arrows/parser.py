@@ -56,7 +56,7 @@ TOKEN_PATTERNS = [
     (r"\+", "PLUS"),
     (r"-", "MINUS"),
     (r"\d+", "NUMBER"),
-    (r"[a-zA-Z_][\w-]*", "IDENTIFIER"),
+    (r"[a-zA-Z_]\w*", "IDENTIFIER"),
 ]
 
 
@@ -217,10 +217,7 @@ class RuleParser:
             return f
         elif self.match("NOT"):
             self.consume("NOT")
-            self.consume("LPAREN")
-            f = self.parse_formula()
-            self.consume("RPAREN")
-            return Not(f)
+            return Not(self.parse_atom())
         elif self.match("EXISTS", "FORALL"):
             return self.parse_quantifier()
         else:
@@ -330,7 +327,7 @@ class RuleParser:
 
     def _infer_var_type(self, name: str) -> str:
         # p,q,r... are Position, i,j,k... are Number
-        if name and name[0] in "pqrs":
+        if name and name[0] in "pqrst":
             return "Position"
         return "Number"  # default or i,j,k
 

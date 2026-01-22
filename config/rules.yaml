@@ -1,12 +1,17 @@
 # Rules for the Japanese Arrows puzzle solver
 # Each rule has a name, condition, complexity, and conclusions
 
-- name: ARROW-POINTS-OOB
+- name: ARROW_POINTS_OOB
   condition: exists p (ahead(p) = 0)
   complexity: 1
   conclusions:
     - set(p, 0)
-- name: GRID-SIZE
+- name: ARROW_POINTS_IN_BOUNDS
+  condition: exists p (ahead(p) > 0)
+  complexity: 1
+  conclusions:
+    - exclude(p, 0)
+- name: GRID_SIZE
   condition: exists p,i (ahead(p) = i)
   complexity: 1
   conclusions:
@@ -21,9 +26,29 @@
   complexity: 2
   conclusions:
     - exclude(p, >k)
-- name: ADJACENT-ARROWS-SAME-DIRECTION
+- name: NEXT_ARROW_SAME_DIRECTION
   condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i)
   complexity: 2
   conclusions:
     - only(p, [i, i+1])
-  
+- name: PREVIOUS_ARROW_SAME_DIRECTION
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(p) = i)
+  complexity: 2
+  conclusions:
+    - only(q, [i, i-1])
+- name: TRIPLE_ARROWS_SAME_DIRECTION
+  condition: exists p,q,r,i (next(p) = q ^ next(q) = r ^ dir(p) = dir(q) ^ dir(q) = dir(r) ^ val(q) = i ^ val(r) = i)
+  complexity: 2
+  conclusions:
+    - set(p, i)
+- name: SEE_ALL_OPTIONS
+  condition: exists p,q,i,j (val(p) = i ^ sees_distinct(p) = i ^ points_at(p, q) ^ candidate(q, j) ^ forall s (points_at(p, s) -> val(s) != j))
+  complexity: 3
+  conclusions:
+    - exclude(q, j)
+- name: FULL_SET
+  condition: exists p (val(p) = ahead(p) ^ sees_distinct_candidates(p) = ahead(p) ^ exists q,i (points_at(p, q) ^ candidate(q, i) ^ forall s (points_at(p, s) ^ s != q -> !candidate(s, i))))
+  complexity: 3
+  conclusions:
+    - set(q, i)
+    

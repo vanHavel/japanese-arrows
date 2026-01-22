@@ -297,6 +297,19 @@ class Solver:
                 return 0
             return len(get_path(p))
 
+        def behind(p: Position) -> int:
+            if p == "OOB":
+                return 0
+            r, c = p
+            cell = puzzle.grid[r][c]
+            dr, dc = cell.direction.delta
+            count = 0
+            curr_r, curr_c = r - dr, c - dc
+            while 0 <= curr_r < rows and 0 <= curr_c < cols:
+                count += 1
+                curr_r, curr_c = curr_r - dr, curr_c - dc
+            return count
+
         def dir_of(p: Position) -> Direction | str:
             if p == "OOB":
                 return "nil"
@@ -315,6 +328,20 @@ class Solver:
                     distinct_values.add(cell.number)
             return len(distinct_values)
 
+        def sees_distinct_candidates(p: Position) -> int:
+            if p == "OOB":
+                return 0
+            path = get_path(p)
+            union_candidates: set[int] = set()
+            for pos in path:
+                r, c = pos
+                cell = puzzle.grid[r][c]
+                if cell.number is not None:
+                    union_candidates.add(cell.number)
+                elif cell.candidates is not None:
+                    union_candidates.update(cell.candidates)
+            return len(union_candidates)
+
         def ahead_free(p: Position) -> int:
             if p == "OOB":
                 return 0
@@ -330,9 +357,11 @@ class Solver:
             "next": lambda args: next_pos(args[0]),
             "val": lambda args: val(args[0]),
             "ahead": lambda args: ahead(args[0]),
+            "behind": lambda args: behind(args[0]),
             "ahead_free": lambda args: ahead_free(args[0]),
             "dir": lambda args: dir_of(args[0]),
             "sees_distinct": lambda args: sees_distinct(args[0]),
+            "sees_distinct_candidates": lambda args: sees_distinct_candidates(args[0]),
             "add": lambda args: args[0] + args[1] if isinstance(args[0], int) and isinstance(args[1], int) else "nil",
         }
 
@@ -452,9 +481,11 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
         "next": ([Type.POSITION], Type.POSITION),
         "val": ([Type.POSITION], Type.NUMBER),
         "ahead": ([Type.POSITION], Type.NUMBER),
+        "behind": ([Type.POSITION], Type.NUMBER),
         "ahead_free": ([Type.POSITION], Type.NUMBER),
         "dir": ([Type.POSITION], Type.DIRECTION),
         "sees_distinct": ([Type.POSITION], Type.NUMBER),
+        "sees_distinct_candidates": ([Type.POSITION], Type.NUMBER),
         "add": ([Type.NUMBER, Type.NUMBER], Type.NUMBER),
     }
     type_relations = {
