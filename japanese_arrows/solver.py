@@ -1,4 +1,6 @@
 import copy
+from collections import Counter
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, List, Set, Tuple, Union
@@ -22,32 +24,74 @@ from japanese_arrows.type_checking import Type
 from japanese_arrows.universe import Universe
 
 
-class SolverResult(Enum):
+class SolverStatus(Enum):
     SOLVED = "SOLVED"
     NO_SOLUTION = "NO_SOLUTION"
     UNDERCONSTRAINED = "UNDERCONSTRAINED"
+
+
+@dataclass
+class SolverStep:
+    """Records a single step where a rule made progress."""
+
+    rule_name: str
+    witness: dict[str, Any]
+    conclusions_applied: list[Conclusion]
+
+
+@dataclass
+class SolverResult:
+    """Result of solving a puzzle with detailed tracking."""
+
+    status: SolverStatus
+    puzzle: Puzzle
+    max_complexity_used: int
+    rule_application_count: Counter[str]
+    steps: list[SolverStep] = field(default_factory=list)
 
 
 class Solver:
     def __init__(self, rules: List[Rule]):
         self.rules = rules
 
-    def solve(self, puzzle: Puzzle) -> Tuple[SolverResult, Puzzle]:
+    def solve(self, puzzle: Puzzle) -> SolverResult:
         puzzle = copy.deepcopy(puzzle)
         self._initialize_candidates(puzzle)
 
+        steps: list[SolverStep] = []
+        max_complexity_used = 0
+        rule_application_count: Counter[str] = Counter()
+
         while True:
-            progress = self._apply_rules(puzzle)
-            if not progress:
+            step_info = self._apply_rules(puzzle)
+            if step_info is None:
                 break
+            rule, witness, applied_conclusions = step_info
+            max_complexity_used = max(max_complexity_used, rule.complexity)
+            rule_application_count[rule.name] += 1
+            steps.append(
+                SolverStep(
+                    rule_name=rule.name,
+                    witness=witness,
+                    conclusions_applied=applied_conclusions,
+                )
+            )
 
         # Check termination status
         if self._is_solved(puzzle):
-            return SolverResult.SOLVED, puzzle
+            status = SolverStatus.SOLVED
         elif self._has_contradiction(puzzle):
-            return SolverResult.NO_SOLUTION, puzzle
+            status = SolverStatus.NO_SOLUTION
         else:
-            return SolverResult.UNDERCONSTRAINED, puzzle
+            status = SolverStatus.UNDERCONSTRAINED
+
+        return SolverResult(
+            status=status,
+            puzzle=puzzle,
+            max_complexity_used=max_complexity_used,
+            rule_application_count=rule_application_count,
+            steps=steps,
+        )
 
     def _initialize_candidates(self, puzzle: Puzzle) -> None:
         limit = max(puzzle.rows, puzzle.cols)
@@ -60,23 +104,23 @@ class Solver:
                 else:
                     cell.candidates = {cell.number}
 
-    def _apply_rules(self, puzzle: Puzzle) -> bool:
+    def _apply_rules(self, puzzle: Puzzle) -> tuple[Rule, dict[str, Any], list[Conclusion]] | None:
+        """Try to apply rules and return info about the first successful application."""
         universe = self._create_universe(puzzle)
 
         for rule in self.rules:
-            # Check condition
-            witness = universe.check(rule.condition)
-            if witness:
+            # Iterate through all witnesses from the generator
+            for witness in universe.check_all(rule.condition):
                 # Apply conclusions
-                rule_progress = False
+                applied_conclusions: list[Conclusion] = []
                 for conclusion in rule.conclusions:
                     if self._apply_conclusion(puzzle, conclusion, witness, universe):
-                        rule_progress = True
+                        applied_conclusions.append(conclusion)
 
-                if rule_progress:
-                    return True
+                if applied_conclusions:
+                    return rule, witness, applied_conclusions
 
-        return False
+        return None
 
     def _apply_conclusion(
         self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any], universe: Universe
