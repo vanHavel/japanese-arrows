@@ -56,6 +56,9 @@ class Solver:
         self.rules = rules
 
     def solve(self, puzzle: Puzzle) -> SolverResult:
+        # Precompute path cache (static geometry)
+        path_cache = compute_all_paths(puzzle)
+
         puzzle = copy.deepcopy(puzzle)
         self._initialize_candidates(puzzle)
 
@@ -64,7 +67,7 @@ class Solver:
         rule_application_count: Counter[str] = Counter()
 
         while True:
-            step_info = self._apply_rules(puzzle)
+            step_info = self._apply_rules(puzzle, path_cache)
             if step_info is None:
                 break
             rule, witness, applied_conclusions = step_info
@@ -106,9 +109,13 @@ class Solver:
                 else:
                     cell.candidates = {cell.number}
 
-    def _apply_rules(self, puzzle: Puzzle) -> tuple[Rule, dict[str, Any], list[Conclusion]] | None:
+    def _apply_rules(
+        self,
+        puzzle: Puzzle,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
+    ) -> tuple[Rule, dict[str, Any], list[Conclusion]] | None:
         """Try to apply rules and return info about the first successful application."""
-        universe = self._create_universe(puzzle)
+        universe = self._create_universe(puzzle, path_cache)
 
         for rule in self.rules:
             # Iterate through all witnesses from the generator
@@ -211,7 +218,11 @@ class Solver:
             return "nil"
         raise AssertionError(f"Unknown conclusion term type: {type(term)}")
 
-    def _create_universe(self, puzzle: Puzzle) -> Universe:
+    def _create_universe(
+        self,
+        puzzle: Puzzle,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
+    ) -> Universe:
         """
         Creates a Universe for rule evaluation.
 
@@ -220,6 +231,9 @@ class Solver:
         - NUMBER variables resolve to int or "nil" (never "OOB")
         - Variables in conclusions are guaranteed to exist in the witness
         """
+        if path_cache is None:
+            path_cache = compute_all_paths(puzzle)
+
         rows = puzzle.rows
         cols = puzzle.cols
         max_dim = max(rows, cols)
@@ -261,19 +275,11 @@ class Solver:
             return "OOB"
 
         def get_path(p: Position) -> list[tuple[int, int]]:
-            path: list[tuple[int, int]] = []
             if p == "OOB":
-                return path
-
-            r, c = p
-            cell = puzzle.grid[r][c]
-            dr, dc = cell.direction.delta
-            curr_r, curr_c = r + dr, c + dc
-
-            while 0 <= curr_r < rows and 0 <= curr_c < cols:
-                path.append((curr_r, curr_c))
-                curr_r, curr_c = curr_r + dr, curr_c + dc
-            return path
+                return []
+            if isinstance(p, tuple):
+                return path_cache[p]
+            return []
 
         # Functions with readable types
         def next_pos(p: Position) -> Position:
@@ -395,6 +401,24 @@ class Solver:
                 if cell.candidates is not None and len(cell.candidates) == 0:
                     return True
         return False
+
+
+def compute_all_paths(puzzle: Puzzle) -> dict[tuple[int, int], list[tuple[int, int]]]:
+    """
+    Precomputes the straight-line path for every cell in the puzzle grid.
+    Returns a dictionary mapping (r, c) to list of (r, c) coordinates in the path.
+    """
+    path_cache: dict[tuple[int, int], list[tuple[int, int]]] = {}
+    for r in range(puzzle.rows):
+        for c in range(puzzle.cols):
+            dr, dc = puzzle.grid[r][c].direction.delta
+            curr_r, curr_c = r + dr, c + dc
+            path = []
+            while 0 <= curr_r < puzzle.rows and 0 <= curr_c < puzzle.cols:
+                path.append((curr_r, curr_c))
+                curr_r, curr_c = curr_r + dr, curr_c + dc
+            path_cache[(r, c)] = path
+    return path_cache
 
 
 def create_solver(max_complexity: int | None = None, rules_file: str | Path | None = None) -> Solver:
