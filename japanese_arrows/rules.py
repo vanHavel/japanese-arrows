@@ -35,6 +35,16 @@ class FunctionCall(ConditionTerm):
         return f"{self.name}({args_str})"
 
 
+@dataclass
+class ConditionCalculation(ConditionTerm):
+    operator: str  # "+"
+    left: ConditionTerm
+    right: ConditionTerm
+
+    def __str__(self) -> str:
+        return f"({self.left} {self.operator} {self.right})"
+
+
 # --- Conclusion Terms (RHS) ---
 
 

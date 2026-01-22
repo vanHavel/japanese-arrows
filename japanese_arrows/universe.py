@@ -5,6 +5,7 @@ from typing import Any, Callable
 
 from japanese_arrows.rules import (
     And,
+    ConditionCalculation,
     ConditionConstant,
     ConditionTerm,
     ConditionVariable,
@@ -147,5 +148,14 @@ class Universe:
                 raise ValueError(f"Unknown function: {term.name}")
             args_values = [self._eval_term(arg, assignment) for arg in term.args]
             return self.functions[term.name](tuple(args_values))
+
+        elif isinstance(term, ConditionCalculation):
+            left = self._eval_term(term.left, assignment)
+            right = self._eval_term(term.right, assignment)
+            if term.operator == "+" and isinstance(left, int) and isinstance(right, int):
+                return left + right
+            if term.operator == "-" and isinstance(left, int) and isinstance(right, int):
+                return left - right
+            return "nil"
 
         raise ValueError(f"Unknown term type: {type(term)}")

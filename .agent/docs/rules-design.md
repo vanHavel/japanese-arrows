@@ -18,6 +18,8 @@ The signature contains
 - binary relation candidate(p, i): the tuple (p, i) such that either the arrow at p has i as one of its options, or val(p) = i
 - binary relations <, >, <=, >= on digits with the usual interpretation
 - unary function ahead(p): number of cells in the grid in the direction p points at (straight line)
+- unary function ahead_free(p): number of cells in the direction p points at that are not filled yet
+- binary arithmetic function +
 
 The conclusions are a list. Each conclusion can be one of
 - set(p, d): position p must have value d

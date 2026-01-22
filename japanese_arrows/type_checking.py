@@ -7,6 +7,7 @@ from japanese_arrows.rules import (
     ConclusionConstant,
     ConclusionTerm,
     ConclusionVariable,
+    ConditionCalculation,
     ConditionConstant,
     ConditionTerm,
     ConditionVariable,
@@ -250,6 +251,15 @@ def _infer_term_type(
                     f"Argument {i + 1} of function '{term.name}' must be {expected.value}, but got {actual.value}"
                 )
         return ret_type
+
+    elif isinstance(term, ConditionCalculation):
+        left_type = _infer_term_type(term.left, constants, functions, scope)
+        right_type = _infer_term_type(term.right, constants, functions, scope)
+
+        if left_type != Type.NUMBER or right_type != Type.NUMBER:
+            raise TypeError(f"Calculation operands must be Number, got {left_type.value} and {right_type.value}")
+
+        return Type.NUMBER
 
     else:
         raise TypeError(f"Unknown term type: {type(term)}")

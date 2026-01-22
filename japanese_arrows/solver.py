@@ -8,6 +8,7 @@ from typing import Any, Callable, List, Set, Tuple
 import yaml
 
 from japanese_arrows.models import Direction, Puzzle
+from japanese_arrows.optimizer import optimize
 from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
     Calculation,
@@ -20,7 +21,7 @@ from japanese_arrows.rules import (
     Rule,
     SetVal,
 )
-from japanese_arrows.type_checking import Type
+from japanese_arrows.type_checking import Type, check_rule
 from japanese_arrows.universe import Universe
 
 
@@ -308,12 +309,25 @@ class Solver:
                     distinct_values.add(cell.number)
             return len(distinct_values)
 
+        def ahead_free(p: Position) -> int:
+            if p == "OOB":
+                return 0
+            path = get_path(p)
+            count = 0
+            for pos in path:
+                r, c = pos
+                if puzzle.grid[r][c].number is None:
+                    count += 1
+            return count
+
         functions: dict[str, Callable[[Tuple[Any, ...]], Any]] = {
             "next": lambda args: next_pos(args[0]),
             "val": lambda args: val(args[0]),
             "ahead": lambda args: ahead(args[0]),
+            "ahead_free": lambda args: ahead_free(args[0]),
             "dir": lambda args: dir_of(args[0]),
             "sees_distinct": lambda args: sees_distinct(args[0]),
+            "add": lambda args: args[0] + args[1] if isinstance(args[0], int) and isinstance(args[1], int) else "nil",
         }
 
         # Relations with readable types
@@ -408,10 +422,39 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
         rules_data = yaml.safe_load(f)
 
     # Parse rules and filter by complexity
+    # Type definitions
+    type_constants = {"OOB": Type.POSITION, "nil": Type.NUMBER}
+    type_functions = {
+        "next": ([Type.POSITION], Type.POSITION),
+        "val": ([Type.POSITION], Type.NUMBER),
+        "ahead": ([Type.POSITION], Type.NUMBER),
+        "ahead_free": ([Type.POSITION], Type.NUMBER),
+        "dir": ([Type.POSITION], Type.DIRECTION),
+        "sees_distinct": ([Type.POSITION], Type.NUMBER),
+        "add": ([Type.NUMBER, Type.NUMBER], Type.NUMBER),
+    }
+    type_relations = {
+        "points_at": [Type.POSITION, Type.POSITION],
+        "candidate": [Type.POSITION, Type.NUMBER],
+        "<": [Type.NUMBER, Type.NUMBER],
+        ">": [Type.NUMBER, Type.NUMBER],
+        "<=": [Type.NUMBER, Type.NUMBER],
+        ">=": [Type.NUMBER, Type.NUMBER],
+    }
+
     all_rules = []
     for rule_dict in rules_data:
         rule = parse_rule(rule_dict)
         if max_complexity is None or rule.complexity <= max_complexity:
+            # Type check before optimization
+            check_rule(rule, type_constants, type_functions, type_relations)
+
+            # Optimize the rule condition (miniscoping quantifiers)
+            rule.condition = optimize(rule.condition)
+
+            # Type check after optimization
+            check_rule(rule, type_constants, type_functions, type_relations)
+
             all_rules.append(rule)
 
     return Solver(all_rules)

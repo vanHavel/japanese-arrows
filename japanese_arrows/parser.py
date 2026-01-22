@@ -7,6 +7,7 @@ from japanese_arrows.rules import (
     ConclusionConstant,
     ConclusionTerm,
     ConclusionVariable,
+    ConditionCalculation,
     ConditionConstant,
     ConditionTerm,
     ConditionVariable,
@@ -295,6 +296,16 @@ class RuleParser:
         raise ValueError(f"Expected relation or equality, got {left}")
 
     def parse_term(self) -> ConditionTerm:
+        left = self.parse_term_primary()
+
+        while self.match("PLUS", "MINUS"):
+            op = self.advance().value
+            right = self.parse_term_primary()
+            left = ConditionCalculation(op, left, right)
+
+        return left
+
+    def parse_term_primary(self) -> ConditionTerm:
         if self.match("NUMBER"):
             return ConditionConstant(int(self.consume("NUMBER").value))
 

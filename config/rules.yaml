@@ -11,6 +11,16 @@
   complexity: 1
   conclusions:
     - exclude(p, >i)
+- name: DIRECTLY_SEEN
+  condition: exists p,i (sees_distinct(p) = i)
+  complexity: 1
+  conclusions:
+    - exclude(p, <i)
+- name: SEEN_AND_FREE
+  condition: exists p,i,j,k (sees_distinct(p) = i ^ ahead_free(p) = j ^ k = i + j)
+  complexity: 2
+  conclusions:
+    - exclude(p, >k)
 - name: ADJACENT-ARROWS-SAME-DIRECTION
   condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i)
   complexity: 2
