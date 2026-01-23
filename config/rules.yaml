@@ -76,3 +76,18 @@
   complexity: 3
   conclusions:
     - exclude(q, <l)
+- name: MAX_VAL_AT_EDGES_CONFIRM
+  condition: exists p,q,i (behind(p) = 0 ^ behind(q) = 0 ^ points_at(p, q) ^ points_at(q, p) ^ val(p) = ahead(p) ^ val(p) = i)
+  complexity: 3
+  conclusions:
+    - set(q, i)
+- name: MAX_VAL_AT_EDGES_DENY
+  condition: exists p,q,i (behind(p) = 0 ^ behind(q) = 0 ^ points_at(p, q) ^ points_at(q, p) ^ i = ahead(p) ^ !candidate(p, i))
+  complexity: 3
+  conclusions:
+    - exclude(q, i)
+- name: OPPOSITES_LOWER_BOUND
+  condition: exists p,q,i,j,k (points_at(p, q) ^ points_at(q, p) ^ val(q) = i ^ behind(p) = j ^ k = i - j - 1)
+  complexity: 3
+  conclusions:
+    - exclude(p, <k)
