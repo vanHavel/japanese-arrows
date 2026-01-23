@@ -3,10 +3,11 @@ from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, List, Set, Tuple
+from typing import Any, Callable, Iterator, List, Optional, Set, Tuple
 
 import yaml
 
+from japanese_arrows.compiler import RuleCompiler
 from japanese_arrows.models import Direction, Puzzle
 from japanese_arrows.optimizer import optimize
 from japanese_arrows.parser import parse_rule
@@ -54,6 +55,17 @@ class SolverResult:
 class Solver:
     def __init__(self, rules: List[Rule]):
         self.rules = rules
+        self.compiled_rules: List[Optional[Callable[[Universe], Iterator[dict[str, Any]]]]] = []
+        compiler = RuleCompiler()
+        for rule in rules:
+            if rule.complexity > 2 or rule.name in ["FULL_SET_HIDDEN_SINGLE"]:
+                self.compiled_rules.append(None)
+                continue
+            try:
+                self.compiled_rules.append(compiler.compile(rule))
+            except Exception:
+                # print(f"Warning: Could not compile rule {rule.name}: {e}")
+                self.compiled_rules.append(None)
 
     def solve(self, puzzle: Puzzle) -> SolverResult:
         path_cache = compute_all_paths(puzzle)
@@ -115,8 +127,18 @@ class Solver:
         universe = self._create_universe(puzzle, path_cache)
         all_applications: list[tuple[Rule, dict[str, Any], list[Conclusion]]] = []
 
-        for rule in self.rules:
-            for witness in universe.check_all(rule.condition):
+        for i, rule in enumerate(self.rules):
+            compiled_func = self.compiled_rules[i]
+            if compiled_func:
+                try:
+                    witnesses = compiled_func(universe)
+                except Exception:
+                    # print(f"Error running compiled rule {rule.name}: {e}")
+                    witnesses = universe.check_all(rule.condition)
+            else:
+                witnesses = universe.check_all(rule.condition)
+
+            for witness in witnesses:
                 applied_conclusions: list[Conclusion] = []
                 for conclusion in rule.conclusions:
                     if self._apply_conclusion(puzzle, conclusion, witness, universe):
