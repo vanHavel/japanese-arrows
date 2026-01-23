@@ -56,13 +56,28 @@
   complexity: 2
   conclusions:
     - set(p, i)
+- name: UNIQUE_COMMON_CANDIDATE_1
+  condition: exists p,q,i (val(p) = 1 ^ points_at(p, q) ^ (forall s (points_at(p, s) -> candidate(s, i))) ^ (forall j ((forall t (points_at(p, t) -> candidate(t, j))) -> i = j)))
+  complexity: 2
+  conclusions:
+    - set(q, i)
+- name: NEXT_ARROW_SAME_DIRECTION_MINCANDIDATE
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ min_candidate(q) = i)
+  complexity: 3
+  conclusions:
+    - exclude(p, <i)
+- name: NEXT_ARROW_SAME_DIRECTION_MAXCANDIDATE
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ max_candidate(q) = i)
+  complexity: 3
+  conclusions:
+    - exclude(p, >i+1)
 - name: SEEN_AND_NEW
   condition: exists p,q,i (points_at(p, q) ^ sees_distinct(p) = i ^ forall j (candidate(q, j) -> !sees_value(p, j)))
   complexity: 3
   conclusions:
     - exclude(p, i)
 - name: ALL_DISTINCT
-  condition: exists p,q,r,i (ahead(p) = val(p) ^ points_at(p, q) ^ points_at(p, r) ^ q != r ^ val(q) = i)
+  condition: exists p,q,r,i (sees_distinct(p) + ahead_free(p) = val(p) ^ points_at(p, q) ^ points_at(p, r) ^ q != r ^ val(q) = i ^ val(r) = nil)
   complexity: 3
   conclusions:
     - exclude(r, i)
