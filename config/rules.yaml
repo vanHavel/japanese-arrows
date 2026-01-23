@@ -56,6 +56,11 @@
   complexity: 2
   conclusions:
     - set(p, i)
+- name: ALL_DISTINCT
+  condition: exists p,q,r,i (ahead(p) = val(p) ^ points_at(p, q) ^ points_at(p, r) ^ q != r ^ val(q) = i)
+  complexity: 3
+  conclusions:
+    - exclude(r, i)
 - name: SEE_ALL_OPTIONS
   condition: exists p,q,i,j (val(p) = i ^ sees_distinct(p) = i ^ points_at(p, q) ^ candidate(q, j) ^ forall s (points_at(p, s) -> val(s) != j))
   complexity: 3
@@ -89,5 +94,10 @@
 - name: OPPOSITES_LOWER_BOUND
   condition: exists p,q,i,j,k (points_at(p, q) ^ points_at(q, p) ^ val(q) = i ^ behind(p) = j ^ k = i - j - 1)
   complexity: 3
+  conclusions:
+    - exclude(p, <k)
+- name: OPPOSITES_LOWER_BOUND_CANDIDATES
+  condition: exists p,q,i,j,k (points_at(p, q) ^ points_at(q, p) ^ min_candidate(q) = i ^ behind(p) = j ^ k = i - j - 1)
+  complexity: 4
   conclusions:
     - exclude(p, <k)

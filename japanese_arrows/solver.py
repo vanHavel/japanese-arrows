@@ -370,6 +370,17 @@ class Solver:
                 return count
             return "nil"
 
+        def min_candidate(p: Position) -> Number:
+            if p == "OOB":
+                return "nil"
+            r, c = p
+            cell = puzzle.grid[r][c]
+            if cell.number is not None:
+                return cell.number
+            if cell.candidates:
+                return min(cell.candidates)
+            return "nil"
+
         functions: dict[str, Callable[[Tuple[Any, ...]], Any]] = {
             "next": lambda args: next_pos(args[0]),
             "val": lambda args: val(args[0]),
@@ -380,6 +391,7 @@ class Solver:
             "dir": lambda args: dir_of(args[0]),
             "sees_distinct": lambda args: sees_distinct(args[0]),
             "sees_distinct_candidates": lambda args: sees_distinct_candidates(args[0]),
+            "min_candidate": lambda args: min_candidate(args[0]),
             "add": lambda args: args[0] + args[1] if isinstance(args[0], int) and isinstance(args[1], int) else "nil",
         }
 
@@ -505,6 +517,7 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
         "dir": ([Type.POSITION], Type.DIRECTION),
         "sees_distinct": ([Type.POSITION], Type.NUMBER),
         "sees_distinct_candidates": ([Type.POSITION], Type.NUMBER),
+        "min_candidate": ([Type.POSITION], Type.NUMBER),
         "add": ([Type.NUMBER, Type.NUMBER], Type.NUMBER),
     }
     type_relations = {
