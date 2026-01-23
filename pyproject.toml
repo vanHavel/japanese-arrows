@@ -40,3 +40,8 @@ dev = [
     "ruff>=0.14.13",
     "types-pyyaml>=6.0.12",
 ]
+
+[tool.pytest.ini_options]
+markers = [
+    "integration: mark a test as an integration test",
+]

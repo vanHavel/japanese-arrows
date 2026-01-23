@@ -440,9 +440,20 @@ class Solver:
                 return i in cell.candidates
             return False
 
+        def sees_value(p: Position, i: Number) -> bool:
+            if p == "OOB" or not isinstance(i, int):
+                return False
+            path = get_path(p)
+            for pos in path:
+                r, c = pos
+                if puzzle.grid[r][c].number == i:
+                    return True
+            return False
+
         relations: dict[str, Callable[[Tuple[Any, ...]], bool]] = {
             "points_at": lambda args: points_at(args[0], args[1]),
             "candidate": lambda args: candidate(args[0], args[1]),
+            "sees_value": lambda args: sees_value(args[0], args[1]),
             "<": lambda args: compare(args[0], args[1], "<"),
             ">": lambda args: compare(args[0], args[1], ">"),
             "<=": lambda args: compare(args[0], args[1], "<="),
@@ -534,6 +545,7 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
     type_relations = {
         "points_at": [Type.POSITION, Type.POSITION],
         "candidate": [Type.POSITION, Type.NUMBER],
+        "sees_value": [Type.POSITION, Type.NUMBER],
         "<": [Type.NUMBER, Type.NUMBER],
         ">": [Type.NUMBER, Type.NUMBER],
         "<=": [Type.NUMBER, Type.NUMBER],

@@ -56,6 +56,11 @@
   complexity: 2
   conclusions:
     - set(p, i)
+- name: SEEN_AND_NEW
+  condition: exists p,q,i (points_at(p, q) ^ sees_distinct(p) = i ^ forall j (candidate(q, j) -> !sees_value(p, j)))
+  complexity: 3
+  conclusions:
+    - exclude(p, i)
 - name: ALL_DISTINCT
   condition: exists p,q,r,i (ahead(p) = val(p) ^ points_at(p, q) ^ points_at(p, r) ^ q != r ^ val(q) = i)
   complexity: 3
