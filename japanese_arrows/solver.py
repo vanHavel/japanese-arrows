@@ -56,7 +56,6 @@ class Solver:
         self.rules = rules
 
     def solve(self, puzzle: Puzzle) -> SolverResult:
-        # Precompute path cache (static geometry)
         path_cache = compute_all_paths(puzzle)
 
         puzzle = copy.deepcopy(puzzle)
@@ -67,22 +66,20 @@ class Solver:
         rule_application_count: Counter[str] = Counter()
 
         while True:
-            step_info = self._apply_rules(puzzle, path_cache)
-            if step_info is None:
+            all_applications = self._apply_rules(puzzle, path_cache)
+            if not all_applications:
                 break
-            rule, witness, applied_conclusions = step_info
-            max_complexity_used = max(max_complexity_used, rule.complexity)
-            rule_application_count[rule.name] += 1
-            steps.append(
-                SolverStep(
-                    rule_name=rule.name,
-                    witness=witness,
-                    conclusions_applied=applied_conclusions,
+            for rule, witness, applied_conclusions in all_applications:
+                max_complexity_used = max(max_complexity_used, rule.complexity)
+                rule_application_count[rule.name] += 1
+                steps.append(
+                    SolverStep(
+                        rule_name=rule.name,
+                        witness=witness,
+                        conclusions_applied=applied_conclusions,
+                    )
                 )
-            )
 
-        # Check termination status
-        # Check termination status
         if self._has_contradiction(puzzle):
             status = SolverStatus.NO_SOLUTION
         elif self._is_solved(puzzle):
@@ -113,23 +110,22 @@ class Solver:
         self,
         puzzle: Puzzle,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
-    ) -> tuple[Rule, dict[str, Any], list[Conclusion]] | None:
-        """Try to apply rules and return info about the first successful application."""
+    ) -> list[tuple[Rule, dict[str, Any], list[Conclusion]]]:
+        """Apply all matching rules and return list of all successful applications."""
         universe = self._create_universe(puzzle, path_cache)
+        all_applications: list[tuple[Rule, dict[str, Any], list[Conclusion]]] = []
 
         for rule in self.rules:
-            # Iterate through all witnesses from the generator
             for witness in universe.check_all(rule.condition):
-                # Apply conclusions
                 applied_conclusions: list[Conclusion] = []
                 for conclusion in rule.conclusions:
                     if self._apply_conclusion(puzzle, conclusion, witness, universe):
                         applied_conclusions.append(conclusion)
 
                 if applied_conclusions:
-                    return rule, witness, applied_conclusions
+                    all_applications.append((rule, witness, applied_conclusions))
 
-        return None
+        return all_applications
 
     def _apply_conclusion(
         self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any], universe: Universe
@@ -234,6 +230,26 @@ class Solver:
         if path_cache is None:
             path_cache = compute_all_paths(puzzle)
 
+        # Precompute ahead values (purely geometric, never changes)
+        ahead_cache: dict[Any, int] = {}
+        for r in range(puzzle.rows):
+            for c in range(puzzle.cols):
+                ahead_cache[(r, c)] = len(path_cache[(r, c)])
+        ahead_cache["OOB"] = 0
+
+        # Precompute points_at relations (purely geometric, never changes)
+        points_at_cache: dict[tuple[Any, Any], bool] = {}
+        for r in range(puzzle.rows):
+            for c in range(puzzle.cols):
+                p = (r, c)
+                path = path_cache[p]
+                for q in path:
+                    points_at_cache[(p, q)] = True
+                # Also cache OOB cases
+                points_at_cache[(p, "OOB")] = False
+                points_at_cache[("OOB", p)] = False
+        points_at_cache[("OOB", "OOB")] = False
+
         rows = puzzle.rows
         cols = puzzle.cols
         max_dim = max(rows, cols)
@@ -293,9 +309,7 @@ class Solver:
             return cell.number if cell.number is not None else "nil"
 
         def ahead(p: Position) -> int:
-            if p == "OOB":
-                return 0
-            return len(get_path(p))
+            return ahead_cache.get(p, 0)
 
         def behind(p: Position) -> int:
             if p == "OOB":
@@ -397,10 +411,7 @@ class Solver:
 
         # Relations with readable types
         def points_at(p: Position, q: Position) -> bool:
-            if p == "OOB" or q == "OOB":
-                return False
-            path = get_path(p)
-            return q in path
+            return points_at_cache.get((p, q), False)
 
         def compare(a: Number, b: Number, op: str) -> bool:
             if a == "nil" or b == "nil":
