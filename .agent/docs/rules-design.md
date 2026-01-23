@@ -20,6 +20,7 @@ The signature contains
 - unary function ahead(p): number of cells in the grid in the direction p points at (straight line)
 - unary function behind(p): number of cells in the grid before p in the direction p points at (straight line)
 - unary function ahead_free(p): number of cells in the direction p points at that are not filled yet
+- binary function between_free(p, q): the number of free cells strictly between p and q (exclusive), if q is on the path from p. Otherwise nil.
 - binary arithmetic function +
 
 The conclusions are a list. Each conclusion can be one of

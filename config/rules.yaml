@@ -31,11 +31,26 @@
   complexity: 2
   conclusions:
     - only(p, [i, i+1])
+- name: AHEAD_ARROW_SAME_DIRECTION
+  condition: exists p,q,i (points_at(p, q) ^ dir(p) = dir(q) ^ val(q) = i)
+  complexity: 2
+  conclusions:
+    - exclude(p, <i)
 - name: PREVIOUS_ARROW_SAME_DIRECTION
   condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(p) = i)
   complexity: 2
   conclusions:
     - only(q, [i, i-1])
+- name: PREVIOUS_ARROW_SAME_DIRECTION_VAL_SEEN
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i ^ exists r (points_at(q, r) ^ val(r) = i))
+  complexity: 2
+  conclusions:
+    - set(p, i)
+- name: BEFORE_ARROW_SAME_DIRECTION
+  condition: exists p,q,i (points_at(p, q) ^ dir(p) = dir(q) ^ val(p) = i)
+  complexity: 2
+  conclusions:
+    - exclude(q, >i)
 - name: TRIPLE_ARROWS_SAME_DIRECTION
   condition: exists p,q,r,i (next(p) = q ^ next(q) = r ^ dir(p) = dir(q) ^ dir(q) = dir(r) ^ val(q) = i ^ val(r) = i)
   complexity: 2
@@ -46,9 +61,18 @@
   complexity: 3
   conclusions:
     - exclude(q, j)
-- name: FULL_SET
+- name: FULL_SET_HIDDEN_SINGLE
   condition: exists p (val(p) = ahead(p) ^ sees_distinct_candidates(p) = ahead(p) ^ exists q,i (points_at(p, q) ^ candidate(q, i) ^ forall s (points_at(p, s) ^ s != q -> !candidate(s, i))))
   complexity: 3
   conclusions:
     - set(q, i)
-    
+- name: AHEAD_ARROW_SAME_DIRECTION_FREE
+  condition: exists p,q,i,j,k,l (points_at(p, q) ^ dir(p) = dir(q) ^ val(q) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i + j + k)
+  complexity: 3
+  conclusions:
+    - exclude(p, >l)
+- name: BEFORE_ARROW_SAME_DIRECTION_FREE
+  condition: exists p,q,i,j,k,l (points_at(p, q) ^ dir(p) = dir(q) ^ val(p) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i - j - k - 1)
+  complexity: 3
+  conclusions:
+    - exclude(q, <l)

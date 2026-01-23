@@ -353,11 +353,29 @@ class Solver:
                     count += 1
             return count
 
+        def between_free(p: Position, q: Position) -> Number:
+            if p == "OOB" or q == "OOB":
+                return "nil"
+            path = get_path(p)
+            count = 0
+            found = False
+            for pos in path:
+                if pos == q:
+                    found = True
+                    break
+                r, c = pos
+                if puzzle.grid[r][c].number is None:
+                    count += 1
+            if found:
+                return count
+            return "nil"
+
         functions: dict[str, Callable[[Tuple[Any, ...]], Any]] = {
             "next": lambda args: next_pos(args[0]),
             "val": lambda args: val(args[0]),
             "ahead": lambda args: ahead(args[0]),
             "behind": lambda args: behind(args[0]),
+            "between_free": lambda args: between_free(args[0], args[1]),
             "ahead_free": lambda args: ahead_free(args[0]),
             "dir": lambda args: dir_of(args[0]),
             "sees_distinct": lambda args: sees_distinct(args[0]),
@@ -482,6 +500,7 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
         "val": ([Type.POSITION], Type.NUMBER),
         "ahead": ([Type.POSITION], Type.NUMBER),
         "behind": ([Type.POSITION], Type.NUMBER),
+        "between_free": ([Type.POSITION, Type.POSITION], Type.NUMBER),
         "ahead_free": ([Type.POSITION], Type.NUMBER),
         "dir": ([Type.POSITION], Type.DIRECTION),
         "sees_distinct": ([Type.POSITION], Type.NUMBER),
