@@ -131,3 +131,42 @@ class Puzzle:
         rows = len(grid)
         cols = len(grid[0]) if grid else 0
         return cls(rows=rows, cols=cols, grid=grid)
+
+    def to_string_with_candidates(self) -> str:
+        # Calculate max width for each column
+        col_widths = [0] * self.cols
+        cell_strs = []
+
+        for row in self.grid:
+            row_strs = []
+            for c, cell in enumerate(row):
+                if cell.number is not None:
+                    s = f"{cell.direction.value}{cell.number}"
+                elif cell.candidates:
+                    cands = "".join(str(x) for x in sorted(cell.candidates))
+                    s = f"{cell.direction.value}{cands}"
+                else:
+                    s = f"{cell.direction.value}."
+
+                col_widths[c] = max(col_widths[c], len(s))
+                row_strs.append(s)
+            cell_strs.append(row_strs)
+
+        res = []
+        # Create border
+        border_parts = ["-" * (w + 2) for w in col_widths]
+        border = "+" + "+".join(border_parts) + "+"
+        res.append(border)
+
+        for row_s in cell_strs:
+            line_parts = []
+            for c, s in enumerate(row_s):
+                width = col_widths[c]
+                padded = s.ljust(width)
+                line_parts.append(f" {padded} ")
+
+            line = "|" + "|".join(line_parts) + "|"
+            res.append(line)
+            res.append(border)
+
+        return "\n".join(res) + "\n"

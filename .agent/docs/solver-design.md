@@ -5,9 +5,7 @@ The solver is initialized with a list of rules. When solving a puzzle, the solve
 
 If a rule can be applied to make progress in the puzzle, the progress is marked in the puzzle state.
 
-If this leaves all arrows filled, the solver checks the whole puzzle to verify that there is no contradiction and every arrow has a value according to the rules. If yes, the solver then terminates and returns the solved puzzle. Otherwise the solver returns NoSolution.
-
-Otherwise and the solver begins again scanning the rules from the beginning.
+If this leaves all arrows filled, the solver checks the whole puzzle to verify that there is no contradiction and every arrow has a value according to the rules. If yes, the solver then terminates and returns the solved puzzle. On contradiction the solver returns NoSolution.
 
 If a rule does not allow to make progress, the solver continues with the next rule.
 

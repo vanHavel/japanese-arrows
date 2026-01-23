@@ -21,6 +21,11 @@
   complexity: 1
   conclusions:
     - exclude(p, <i)
+- name: ONE
+  condition: exists p,q,r,i (val(p) = 1 ^ points_at(p, q) ^ val(q) = nil ^ points_at(p, r) ^ val(r) = nil ^ q != r ^candidate(r, i) ^ !candidate(q, i))
+  complexity: 2
+  conclusions:
+    - exclude(r, i)
 - name: SEEN_AND_FREE
   condition: exists p,i,j,k (sees_distinct(p) = i ^ ahead_free(p) = j ^ k = i + j)
   complexity: 2
@@ -66,6 +71,11 @@
   complexity: 2
   conclusions:
     - set(q, i)
+- name: MAX_CANDIDATES
+  condition: exists p,i (sees_distinct_candidates(p) = i ^ max_candidate(p) > i)
+  complexity: 2
+  conclusions:
+    - exclude(p, >i)
 - name: NEXT_ARROW_SAME_DIRECTION_MINCANDIDATE
   condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ min_candidate(q) = i)
   complexity: 3
