@@ -31,6 +31,11 @@
   complexity: 2
   conclusions:
     - only(p, [i, i+1])
+- name: NEXT_ARROW_SAME_DIRECTION_VAL_SEEN
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i ^ exists r (points_at(q, r) ^ val(r) = i))
+  complexity: 2
+  conclusions:
+    - set(p, i)
 - name: AHEAD_ARROW_SAME_DIRECTION
   condition: exists p,q,i (points_at(p, q) ^ dir(p) = dir(q) ^ val(q) = i)
   complexity: 2
@@ -41,11 +46,11 @@
   complexity: 2
   conclusions:
     - only(q, [i, i-1])
-- name: PREVIOUS_ARROW_SAME_DIRECTION_VAL_SEEN
-  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i ^ exists r (points_at(q, r) ^ val(r) = i))
+- name: PREVIOUS_ARROW_SAME_DIRECTION_VAL_AHEAD
+  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(p) = i ^ exists r (points_at(q, r) ^ val(r) = i-1))
   complexity: 2
   conclusions:
-    - set(p, i)
+    - set(q, i)
 - name: BEFORE_ARROW_SAME_DIRECTION
   condition: exists p,q,i (points_at(p, q) ^ dir(p) = dir(q) ^ val(p) = i)
   complexity: 2

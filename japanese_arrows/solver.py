@@ -92,6 +92,9 @@ class Solver:
                             conclusions_applied=applied_conclusions,
                         )
                     )
+                    # If state changed, previous witnesses might be invalid.
+                    # We break to re-evaluate or move to next rule.
+                    break
 
             if rule_changed:
                 consecutive_no_change = 0
