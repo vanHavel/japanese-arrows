@@ -137,8 +137,8 @@ def test_apply_simple_rule() -> None:
     solver._initialize_candidates(puzzle)
 
     # Apply rule
-    progress = solver._apply_rules(puzzle)
-    assert progress
+    result = solver.solve(puzzle)
+    assert len(result.steps) > 0
 
     # Check if a cell was set to 1.
     # Since the rule finds *a* witness, at least one cell should be 1.
@@ -146,7 +146,7 @@ def test_apply_simple_rule() -> None:
     found_one = False
     for r in range(2):
         for c in range(2):
-            if puzzle.grid[r][c].number == 1:
+            if result.puzzle.grid[r][c].number == 1:
                 found_one = True
     assert found_one
 

@@ -65,20 +65,40 @@ class Solver:
         max_complexity_used = 0
         rule_application_count: Counter[str] = Counter()
 
-        while True:
-            all_applications = self._apply_rules(puzzle, path_cache)
-            if not all_applications:
-                break
-            for rule, witness, applied_conclusions in all_applications:
-                max_complexity_used = max(max_complexity_used, rule.complexity)
-                rule_application_count[rule.name] += 1
-                steps.append(
-                    SolverStep(
-                        rule_name=rule.name,
-                        witness=witness,
-                        conclusions_applied=applied_conclusions,
+        universe = self._create_universe(puzzle, path_cache)
+
+        num_rules = len(self.rules)
+        rule_idx = 0
+        consecutive_no_change = 0
+
+        while consecutive_no_change < num_rules:
+            rule = self.rules[rule_idx]
+            rule_changed = False
+
+            for witness in universe.check_all(rule.condition):
+                applied_conclusions: list[Conclusion] = []
+                for conclusion in rule.conclusions:
+                    if self._apply_conclusion(puzzle, conclusion, witness, universe):
+                        applied_conclusions.append(conclusion)
+
+                if applied_conclusions:
+                    rule_changed = True
+                    max_complexity_used = max(max_complexity_used, rule.complexity)
+                    rule_application_count[rule.name] += 1
+                    steps.append(
+                        SolverStep(
+                            rule_name=rule.name,
+                            witness=witness,
+                            conclusions_applied=applied_conclusions,
+                        )
                     )
-                )
+
+            if rule_changed:
+                consecutive_no_change = 0
+            else:
+                consecutive_no_change += 1
+
+            rule_idx = (rule_idx + 1) % num_rules
 
         if self._has_contradiction(puzzle):
             status = SolverStatus.NO_SOLUTION
@@ -105,27 +125,6 @@ class Solver:
                     cell.candidates = initial_candidates.copy()
                 else:
                     cell.candidates = {cell.number}
-
-    def _apply_rules(
-        self,
-        puzzle: Puzzle,
-        path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
-    ) -> list[tuple[Rule, dict[str, Any], list[Conclusion]]]:
-        """Apply all matching rules and return list of all successful applications."""
-        universe = self._create_universe(puzzle, path_cache)
-        all_applications: list[tuple[Rule, dict[str, Any], list[Conclusion]]] = []
-
-        for rule in self.rules:
-            for witness in universe.check_all(rule.condition):
-                applied_conclusions: list[Conclusion] = []
-                for conclusion in rule.conclusions:
-                    if self._apply_conclusion(puzzle, conclusion, witness, universe):
-                        applied_conclusions.append(conclusion)
-
-                if applied_conclusions:
-                    all_applications.append((rule, witness, applied_conclusions))
-
-        return all_applications
 
     def _apply_conclusion(
         self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any], universe: Universe
