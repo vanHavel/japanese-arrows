@@ -145,3 +145,40 @@ class UsesRule(Constraint):
                 return False
 
         return True
+
+
+class FollowingArrowsFraction(Constraint):
+    def __init__(self, min_fraction: Optional[float] = None, max_fraction: Optional[float] = None):
+        self.min_fraction = min_fraction
+        self.max_fraction = max_fraction
+
+    def _get_count(self, puzzle: Puzzle) -> int:
+        count = 0
+        for r in range(puzzle.rows):
+            for c in range(puzzle.cols):
+                cell = puzzle.grid[r][c]
+                dr, dc = cell.direction.delta
+                nr, nc = r + dr, c + dc
+                if 0 <= nr < puzzle.rows and 0 <= nc < puzzle.cols:
+                    if puzzle.grid[nr][nc].direction == cell.direction:
+                        count += 1
+        return count
+
+    def check(self, trace: SolverResult) -> bool:
+        # Since this only depends on the arrows, pre_check logic applies
+        return self.pre_check(trace.puzzle)
+
+    def pre_check(self, puzzle: Puzzle) -> bool:
+        total_cells = puzzle.rows * puzzle.cols
+        if total_cells == 0:
+            return True
+
+        count = self._get_count(puzzle)
+        fraction = count / total_cells
+
+        if self.min_fraction is not None and fraction < self.min_fraction:
+            return False
+        if self.max_fraction is not None and fraction > self.max_fraction:
+            return False
+
+        return True

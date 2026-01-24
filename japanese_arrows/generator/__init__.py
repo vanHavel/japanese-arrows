@@ -1,5 +1,6 @@
 from .constraints import (
     Constraint,
+    FollowingArrowsFraction,
     NumberFraction,
     RuleComplexityFraction,
     UsesRule,
@@ -13,4 +14,5 @@ __all__ = [
     "RuleComplexityFraction",
     "NumberFraction",
     "UsesRule",
+    "FollowingArrowsFraction",
 ]

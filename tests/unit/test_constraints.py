@@ -193,6 +193,50 @@ def test_number_fraction_pre_check() -> None:
     assert constraint1_fail.pre_check(puzzle3) is False
 
 
+def test_following_arrows_fraction() -> None:
+    from japanese_arrows.models import Cell, Direction, Puzzle
+
+    # 2x2 grid, (0,0) and (0,1) point EAST, (1,0) and (1,1) point WEST
+    # (0,0) points at (0,1), both EAST -> count 1
+    # (1,1) points at (1,0), both WEST -> count 1
+    # Total count: 2
+    # Fraction: 2/4 = 0.5
+    grid = [
+        [Cell(Direction.EAST), Cell(Direction.EAST)],
+        [Cell(Direction.WEST), Cell(Direction.WEST)],
+    ]
+    puzzle = Puzzle(2, 2, grid)
+
+    from japanese_arrows.generator.constraints import FollowingArrowsFraction
+
+    constraint = FollowingArrowsFraction(min_fraction=0.4, max_fraction=0.6)
+    assert constraint.pre_check(puzzle) is True
+
+    constraint_fail = FollowingArrowsFraction(min_fraction=0.6)
+    assert constraint_fail.pre_check(puzzle) is False
+
+    # 2x2 grid, all point NORTH
+    # (1,0) points at (0,0), both NORTH -> count 1
+    # (1,1) points at (0,1), both NORTH -> count 1
+    # Total count: 2
+    # Fraction: 2/4 = 0.5
+    grid2 = [
+        [Cell(Direction.NORTH), Cell(Direction.NORTH)],
+        [Cell(Direction.NORTH), Cell(Direction.NORTH)],
+    ]
+    puzzle2 = Puzzle(2, 2, grid2)
+    assert FollowingArrowsFraction(min_fraction=0.5).pre_check(puzzle2) is True
+
+    # 3x1 grid, all point SOUTH
+    # (0,0) points at (1,0), both SOUTH -> count 1
+    # (1,0) points at (2,0), both SOUTH -> count 1
+    # Total count: 2
+    # Fraction: 2/3 = 0.66
+    grid3 = [[Cell(Direction.SOUTH)], [Cell(Direction.SOUTH)], [Cell(Direction.SOUTH)]]
+    puzzle3 = Puzzle(3, 1, grid3)
+    assert FollowingArrowsFraction(min_fraction=0.6, max_fraction=0.7).pre_check(puzzle3) is True
+
+
 def test_uses_rule() -> None:
     step1 = MagicMock()
     step1.rule_name = "RULE_A"
