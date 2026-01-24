@@ -4,11 +4,10 @@ from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
 
 # Configuration
-PUZZLE_PATH = "puzzles/pi.txt"
+PUZZLE_PATH = "puzzles/phil_evil_2.txt"
 
 
 def main() -> None:
-    # Use max_complexity=6 to include backtracking
     solver = create_solver(max_complexity=6)
 
     puzzle_path = Path(PUZZLE_PATH)

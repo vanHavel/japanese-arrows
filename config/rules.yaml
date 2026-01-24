@@ -85,6 +85,12 @@
   complexity: 2
   conclusions:
     - exclude(p, >i)
+- name: ELIMINATE_1
+  condition: exists p (candidate(p, 1) ^ forall i (exists q (points_at(p, q) ^ !candidate(q, i))))
+  kind: FO
+  complexity: 2
+  conclusions:
+    - exclude(p, 1)
 - name: NEXT_ARROW_SAME_DIRECTION_MINCANDIDATE
   condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ min_candidate(q) = i)
   kind: FO
@@ -116,7 +122,7 @@
   conclusions:
     - exclude(q, j)
 - name: FULL_SET_HIDDEN_SINGLE
-  condition: exists p (val(p) = ahead(p) ^ sees_distinct_candidates(p) = ahead(p) ^ exists q,i (points_at(p, q) ^ candidate(q, i) ^ forall s (points_at(p, s) ^ s != q -> !candidate(s, i))))
+  condition: exists p (val(p) = sees_distinct_candidates(p) ^ exists q,i (points_at(p, q) ^ candidate(q, i) ^ forall s (points_at(p, s) ^ s != q -> !candidate(s, i))))
   kind: FO
   complexity: 3
   conclusions:
