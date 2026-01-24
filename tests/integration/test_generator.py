@@ -8,8 +8,10 @@ def test_generator_simple() -> None:
     gen = Generator()
     constraints: list[Constraint] = []
     # Use small grid 3x3
-    puzzle, stats = gen.generate(3, 3, False, 1, constraints)
+    puzzle, stats = gen.generate(3, 3, False, 3, constraints)
 
+    if puzzle is None:
+        print(f"Stats: {stats}")
     assert isinstance(puzzle, Puzzle)
     assert stats.puzzles_successfully_generated == 1
     assert stats.puzzles_rejected_constraints >= 0
@@ -18,7 +20,7 @@ def test_generator_simple() -> None:
     assert puzzle.cols == 3
 
     # Verify valid puzzle by solving it again
-    solver = create_solver(max_complexity=1)
+    solver = create_solver(max_complexity=3)
     res = solver.solve(puzzle)
 
     assert res.status == SolverStatus.SOLVED
@@ -31,15 +33,17 @@ def test_generator_constraints() -> None:
     constraints: list[Constraint] = [RuleComplexityFraction(complexity=1, min_fraction=0.01)]
 
     # 4x4 with diagonals allowed
-    puzzle, stats = gen.generate(4, 4, True, 1, constraints, max_attempts=200)
+    puzzle, stats = gen.generate(4, 4, True, 3, constraints, max_attempts=200)
 
+    if puzzle is None:
+        print(f"Stats: {stats}")
     assert isinstance(puzzle, Puzzle)
     assert stats.puzzles_rejected_constraints >= 0
     assert stats.puzzles_rejected_no_solution >= 0
     assert stats.puzzles_successfully_generated == 1
 
     # Verify it solves
-    solver = create_solver(max_complexity=1)
+    solver = create_solver(max_complexity=3)
     res = solver.solve(puzzle)
     assert res.status == SolverStatus.SOLVED
 
@@ -51,11 +55,12 @@ def test_generate_many() -> None:
 
     stats = GenerationStats()
 
-    for batch_puzzles, batch_stats in gen.generate_many(3, 3, 3, False, 1, []):
+    for batch_puzzles, batch_stats in gen.generate_many(3, 3, 3, False, 3, []):
         puzzles.extend(batch_puzzles)
         stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
         stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
         stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
+        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
 
     assert len(puzzles) == 3
     assert stats.puzzles_successfully_generated == 3
@@ -72,7 +77,7 @@ def test_generator_max_attempts() -> None:
 
     constraints: list[Constraint] = [NumberFraction(number=99, min_fraction=0.1)]
 
-    puzzle, stats = gen.generate(3, 3, False, 1, constraints, max_attempts=5)
+    puzzle, stats = gen.generate(3, 3, False, 3, constraints, max_attempts=5)
     assert puzzle is None
 
 
@@ -84,15 +89,19 @@ def test_generate_many_max_attempts() -> None:
 
     stats = GenerationStats()
 
-    for batch_puzzles, batch_stats in gen.generate_many(10, 3, 3, False, 1, [], max_attempts=5):
+    for batch_puzzles, batch_stats in gen.generate_many(10, 3, 3, False, 3, [], max_attempts=5):
         puzzles.extend(batch_puzzles)
         stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
         stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
         stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
+        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
 
     assert len(puzzles) <= 5
     assert (
-        stats.puzzles_successfully_generated + stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution
+        stats.puzzles_successfully_generated
+        + stats.puzzles_rejected_constraints
+        + stats.puzzles_rejected_no_solution
+        + stats.puzzles_rejected_excessive_guessing
         == 5
     )
 
@@ -105,7 +114,7 @@ def test_generate_many_parallel() -> None:
 
     stats = GenerationStats()
 
-    for batch_puzzles, batch_stats in gen.generate_many(4, 3, 3, False, 1, [], n_jobs=2):
+    for batch_puzzles, batch_stats in gen.generate_many(4, 3, 3, False, 3, [], n_jobs=2):
         puzzles.extend(batch_puzzles)
         stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
 

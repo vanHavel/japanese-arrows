@@ -16,12 +16,14 @@ class GenerationStats:
     puzzles_successfully_generated: int = 0
     puzzles_rejected_constraints: int = 0
     puzzles_rejected_no_solution: int = 0
+    puzzles_rejected_excessive_guessing: int = 0
     rejections_per_constraint: dict[str, int] = field(default_factory=dict)
 
 
 class Generator:
     OUTWARD_ARROWS_THRESHOLD = 0.1
     MAX_MODIFICATIONS = 3
+    MAX_GUESSES_FRACTION = 0.25
 
     def generate(
         self,
@@ -43,6 +45,7 @@ class Generator:
                 stats.puzzles_successfully_generated
                 + stats.puzzles_rejected_constraints
                 + stats.puzzles_rejected_no_solution
+                + stats.puzzles_rejected_excessive_guessing
             )
             if total_attempts >= max_attempts and max_attempts != -1:
                 return None, stats
@@ -89,6 +92,13 @@ class Generator:
                         break
 
                 elif trace.status == SolverStatus.UNDERCONSTRAINED:
+                    import math
+
+                    limit = max(math.ceil(rows * cols * self.MAX_GUESSES_FRACTION), 3)
+                    if extra_fills >= limit:
+                        stats.puzzles_rejected_excessive_guessing += 1
+                        break
+
                     current_puzzle = trace.puzzle
 
                     empty_cells = []
@@ -139,6 +149,7 @@ class Generator:
 
                         # Reset current_puzzle to base_puzzle (clears number guesses)
                         current_puzzle = copy.deepcopy(base_puzzle)
+                        extra_fills = 0
 
                         # Recompute paths since arrows changed
                         path_cache = compute_all_paths(current_puzzle)
@@ -221,6 +232,7 @@ class Generator:
                 batch_stats.puzzles_successfully_generated
                 + batch_stats.puzzles_rejected_constraints
                 + batch_stats.puzzles_rejected_no_solution
+                + batch_stats.puzzles_rejected_excessive_guessing
             )
             remaining = max_attempts - total_attempts
 

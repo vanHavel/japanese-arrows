@@ -46,6 +46,7 @@ def main() -> None:
         stats.puzzles_successfully_generated += len(batch_puzzles)
         stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
         stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
+        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
         for name, count in batch_stats.rejections_per_constraint.items():
             stats.rejections_per_constraint[name] = stats.rejections_per_constraint.get(name, 0) + count
 
@@ -68,6 +69,7 @@ def main() -> None:
     print("Generation Statistics:")
     print(f"  Puzzles successfully generated: {stats.puzzles_successfully_generated}")
     print(f"  Puzzles rejected by no solution: {stats.puzzles_rejected_no_solution}")
+    print(f"  Puzzles rejected by excessive guessing: {stats.puzzles_rejected_excessive_guessing}")
     print(f"  Puzzles rejected by constraints: {stats.puzzles_rejected_constraints}")
     for name, count in stats.rejections_per_constraint.items():
         print(f"    - {name}: {count}")
