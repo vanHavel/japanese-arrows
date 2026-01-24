@@ -163,9 +163,15 @@
   complexity: 4
   conclusions:
     - exclude(p, <k)
-- name: BACKTRACK_1
+- name: BACKTRACK_SIMPLE
   kind: Backtrack
   complexity: 5
   backtrack_depth: 1
-  rule_depth: 1
+  rule_depth: 2
+  max_rule_complexity: 3
+- name: BACKTRACK_COMPLEX
+  kind: Backtrack
+  complexity: 6
+  backtrack_depth: 1
+  rule_depth: 15
   max_rule_complexity: 4
