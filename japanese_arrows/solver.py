@@ -70,11 +70,24 @@ class Solver:
         self.rules = sorted(rules, key=lambda r: r.complexity)
         self.max_rule_complexity = max((r.complexity for r in rules), default=1)
 
-    def solve(self, puzzle: Puzzle) -> SolverResult:
-        path_cache = compute_all_paths(puzzle)
+    def solve(
+        self,
+        puzzle: Puzzle,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
+        reuse_candidates: bool = False,
+    ) -> SolverResult:
+        if path_cache is None:
+            path_cache = compute_all_paths(puzzle)
+
+        # Work on a copy unless we explicitly trust the input (but standard practice is copy)
+        # However, for generator speed, we might want to avoid copying IF we know what we are doing.
+        # But 'puzzle' is mutable, so deepcopy is safest.
+        # If 'reuse_candidates' is True, we assume puzzle already has candidates set up.
 
         puzzle = copy.deepcopy(puzzle)
-        self._initialize_candidates(puzzle)
+        if not reuse_candidates:
+            self._initialize_candidates(puzzle)
+        # Else: assume candidates are already valid
 
         steps: list[SolverStep] = []
         max_complexity_used = 0

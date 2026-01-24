@@ -8,10 +8,10 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 5
-    cols = 5
+    rows = 6
+    cols = 6
     allow_diagonals = False
-    max_complexity = 6
+    max_complexity = 5
 
     constraints = [
         RuleComplexityFraction(complexity=max_complexity, min_fraction=0.01, max_fraction=0.2),

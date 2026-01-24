@@ -1,4 +1,3 @@
-import copy
 import random
 from dataclasses import dataclass
 
@@ -6,7 +5,7 @@ from joblib import Parallel, delayed, effective_n_jobs
 
 from japanese_arrows.generator.constraints import Constraint
 from japanese_arrows.models import Cell, Direction, Puzzle
-from japanese_arrows.solver import SolverResult, SolverStatus, create_solver
+from japanese_arrows.solver import SolverResult, SolverStatus, compute_all_paths, create_solver
 
 
 @dataclass
@@ -50,12 +49,15 @@ class Generator:
                 stats.puzzles_rejected_constraints += 1
                 continue
 
+            # Compute path cache once
+            path_cache = compute_all_paths(current_puzzle)
+            reuse_candidates = False
+
             # 2. Loop until solved or failed
             while True:
                 # 2.1 Run the solver with max_complexity
-                # We work on a copy so we don't mess up current_puzzle validation logic
-                # (though solve() copies internally, we want explicitly fresh start)
-                trace = solver.solve(copy.deepcopy(current_puzzle))
+                # We reuse candidates if we are continuing from a partial solution
+                trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
 
                 if trace.status == SolverStatus.SOLVED:
                     # Step 3: verify that the grid lies within the desired constraints
@@ -69,23 +71,25 @@ class Generator:
 
                 elif trace.status == SolverStatus.UNDERCONSTRAINED:
                     # Step 2.3: Choose random unfilled cell from partial solution
-                    partial_grid = trace.puzzle.grid
+                    # CRITICAL OPTIMIZATION: Use the puzzle state returned by the solver
+                    # which contains candidate reductions.
+                    # We continue working on *this* object in the next iteration.
+                    current_puzzle = trace.puzzle
 
                     empty_cells = []
                     for r in range(rows):
                         for c in range(cols):
-                            if partial_grid[r][c].number is None:
+                            if current_puzzle.grid[r][c].number is None:
                                 empty_cells.append((r, c))
 
                     if not empty_cells:
-                        # This shouldn't happen if status is UNDERCONSTRAINED,
-                        # but if it does, it's a weird state. Restart.
+                        # This shouldn't happen if status is UNDERCONSTRAINED
                         stats.puzzles_rejected_no_solution += 1
                         break
 
                     # Choose random unfilled cell
                     r, c = random.choice(empty_cells)
-                    cell = partial_grid[r][c]
+                    cell = current_puzzle.grid[r][c]
 
                     if not cell.candidates:
                         # No candidates - effectively a dead end / NO_SOLUTION
@@ -95,8 +99,13 @@ class Generator:
                     # Fill with one of its candidates
                     val = random.choice(list(cell.candidates))
 
-                    # Record this decision as a manual insert in current_puzzle
-                    current_puzzle.grid[r][c].number = val
+                    # Set the number AND update candidates to be just this number
+                    # This ensures the solver's consistency check passes next time
+                    cell.number = val
+                    cell.candidates = {val}
+
+                    # Next iteration should assume candidates are valid and just propagate the new info
+                    reuse_candidates = True
 
                     # Continue inner loop
 
