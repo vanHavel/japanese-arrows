@@ -119,17 +119,21 @@ class Solver:
         steps: list[SolverStep],
         rule_application_count: Counter[str],
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
-        mock: bool = False,
+        max_steps: int | None = None,
     ) -> SolverResult:
         num_rules = len(applicable_rules)
         rule_idx = 0
         consecutive_no_change = 0
         max_complexity_used = 0
+        steps_performed = 0
 
         while consecutive_no_change < num_rules:
+            if max_steps is not None and steps_performed >= max_steps:
+                break
+
             rule = applicable_rules[rule_idx]
 
-            result = self._try_apply_rule(puzzle, rule, universe, path_cache, mock)
+            result = self._try_apply_rule(puzzle, rule, universe, path_cache)
 
             if result.status == SolverStatus.NO_SOLUTION:
                 return SolverResult(
@@ -140,12 +144,12 @@ class Solver:
                     steps=steps,
                 )
 
-            # Only reset progress counter if we actually modified the puzzle (not in mock mode)
-            if result.steps and not mock:
+            if result.steps:
                 consecutive_no_change = 0
                 max_complexity_used = max(max_complexity_used, rule.complexity)
                 rule_application_count[rule.name] += len(result.steps)
                 steps.extend(result.steps)
+                steps_performed += len(result.steps)
             else:
                 consecutive_no_change += 1
 
@@ -165,22 +169,11 @@ class Solver:
         rule: Rule,
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
-        mock: bool = False,
     ) -> SolverResult:
         if isinstance(rule, BacktrackRule):
-            if mock:
-                # Avoid infinite recursion: don't apply backtrack rules inside a mock check
-                return SolverResult(
-                    status=SolverStatus.UNDERCONSTRAINED,
-                    puzzle=puzzle,
-                    max_complexity_used=0,
-                    rule_application_count=Counter(),
-                    steps=[],
-                )
             return self._apply_backtrack_rule(puzzle, rule, universe, path_cache)
 
         if not isinstance(rule, FORule):
-            # Other rule types not implemented
             return SolverResult(
                 status=SolverStatus.UNDERCONSTRAINED,
                 puzzle=puzzle,
@@ -193,7 +186,7 @@ class Solver:
             applied_conclusions: list[Conclusion] = []
 
             for conclusion in rule.conclusions:
-                result = self._apply_conclusion(puzzle, conclusion, witness, universe, mock)
+                result = self._apply_conclusion(puzzle, conclusion, witness, universe)
 
                 if result == ConclusionApplicationResult.CONTRADICTION:
                     return SolverResult(
@@ -238,16 +231,13 @@ class Solver:
             for c in range(puzzle.cols):
                 cell = puzzle.grid[r][c]
 
-                # Check 1: Empty candidates (if number is None)
                 if cell.number is None:
                     if not cell.candidates:
                         return False
 
-                # Check 2: Geometric consistency (if number is filled)
                 if cell.number is not None:
                     seen_values = set()
 
-                    # Use cached path
                     path = path_cache.get((r, c), [])
 
                     for pr, pc in path:
@@ -267,9 +257,6 @@ class Solver:
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
     ) -> SolverResult:
-        # path_cache passed from solve method via arguments
-
-        # Find all cells that are not filled
         candidates_map: list[tuple[int, int, set[int]]] = []
         for r in range(puzzle.rows):
             for c in range(puzzle.cols):
@@ -279,34 +266,31 @@ class Solver:
                     if cands:
                         candidates_map.append((r, c, cands))
 
-        # Sort by number of candidates (heuristics: fail fast on small sets)
         candidates_map.sort(key=lambda x: len(x[2]))
 
-        # We need rules up to max_rule_complexity
         hypothesis_rules = [r for r in self.rules if r.complexity <= rule.max_rule_complexity]
 
-        original_grid = puzzle.grid  # Reference to original grid lists
+        original_grid = puzzle.grid
 
         for r, c, cands in candidates_map:
-            # We must iterate over a copy of cands
             for val in list(cands):
-                # Hypothesis: cell(r, c) = val
-
                 try:
-                    # Swap grid with a copy for hypothesis testing
                     working_grid = copy.deepcopy(original_grid)
                     puzzle.grid = working_grid
 
-                    # Apply hypothesis
                     cell = puzzle.grid[r][c]
                     cell.number = val
                     cell.candidates = {val}
 
                     contradiction_found = False
 
-                    # Run rules with mock=False (Allow chaining deductions on the working grid)
-                    # We iterate complexities 1..max
+                    total_steps = 0
+                    limit = rule.rule_depth
+
                     for complexity in range(1, rule.max_rule_complexity + 1):
+                        if total_steps >= limit:
+                            break
+
                         rules_at_c = [rule for rule in hypothesis_rules if rule.complexity <= complexity]
                         if not rules_at_c:
                             continue
@@ -315,33 +299,35 @@ class Solver:
                         mock_counts: Counter[str] = Counter()
 
                         res = self._apply_rules_at_complexity(
-                            puzzle, rules_at_c, universe, mock_steps, mock_counts, path_cache, mock=False
+                            puzzle,
+                            rules_at_c,
+                            universe,
+                            mock_steps,
+                            mock_counts,
+                            path_cache,
+                            max_steps=limit - total_steps,
                         )
 
                         if res.status == SolverStatus.NO_SOLUTION:
                             contradiction_found = True
                             break
 
-                    # Additional Check: Is resulting state consistent?
+                        total_steps += len(res.steps)
+
                     if not contradiction_found:
                         if not self._check_consistency(puzzle, path_cache):
                             contradiction_found = True
 
                 finally:
-                    # Restore original grid reference
                     puzzle.grid = original_grid
 
                 if contradiction_found:
-                    # We found a contradiction for hypothesis cell=val.
-                    # Therefore cell != val.
-                    # Apply deduction to REAL puzzle (which has original_grid restored).
-
                     backtrack_witness = {"p": (r, c)}
                     conclusion = ExcludeVal(
                         position=ConclusionVariable("p"), operator="=", value=ConclusionConstant(val)
                     )
 
-                    apply_res = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe, mock=False)
+                    apply_res = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe)
 
                     if apply_res == ConclusionApplicationResult.CONTRADICTION:
                         return SolverResult(
@@ -394,7 +380,6 @@ class Solver:
         conclusion: Conclusion,
         witness: dict[str, Any],
         universe: Universe,
-        mock: bool = False,
     ) -> ConclusionApplicationResult:
         p_val = self._eval_conclusion_term(conclusion.position, witness)
 
@@ -418,9 +403,8 @@ class Solver:
         if isinstance(conclusion, SetVal):
             val = self._eval_conclusion_term(conclusion.value, witness)
             if not isinstance(val, int):
-                if not mock:
-                    cell.candidates = set()
-                    cell.number = None
+                cell.candidates = set()
+                cell.number = None
                 return ConclusionApplicationResult.CONTRADICTION
             new_candidates.intersection_update({val})
 
@@ -450,14 +434,12 @@ class Solver:
 
         if new_candidates != current_candidates:
             if not new_candidates:
-                if not mock:
-                    cell.candidates = set()
+                cell.candidates = set()
                 return ConclusionApplicationResult.CONTRADICTION
 
-            if not mock:
-                cell.candidates = new_candidates
-                if len(new_candidates) == 1:
-                    cell.number = next(iter(new_candidates))
+            cell.candidates = new_candidates
+            if len(new_candidates) == 1:
+                cell.number = next(iter(new_candidates))
 
             return ConclusionApplicationResult.PROGRESS
 
