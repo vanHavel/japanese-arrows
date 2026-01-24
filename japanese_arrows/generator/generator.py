@@ -39,6 +39,7 @@ class Generator:
         solver = create_solver(max_complexity=max_complexity)
         stats = _stats if _stats is not None else GenerationStats()
         extra_fills = 0
+        guesses: list[tuple[int, int, int]] = []
 
         while True:
             total_attempts = (
@@ -83,7 +84,16 @@ class Generator:
                     failing_constraint = self._get_failing_constraint(trace, constraints)
                     if failing_constraint is None:
                         stats.puzzles_successfully_generated += 1
-                        return current_puzzle, stats
+
+                        # Return a puzzle that only has the guesses and prefilled numbers
+                        result_puzzle = copy.deepcopy(base_puzzle)
+
+                        # Apply guesses
+                        for gr, gc, gval in guesses:
+                            result_puzzle.grid[gr][gc].number = gval
+                            result_puzzle.grid[gr][gc].candidates = {gval}
+
+                        return result_puzzle, stats
                     else:
                         stats.puzzles_rejected_constraints += 1
                         stats.rejections_per_constraint[failing_constraint.name] = (
@@ -123,6 +133,7 @@ class Generator:
                     cell.number = val
                     cell.candidates = {val}
                     extra_fills += 1
+                    guesses.append((r, c, val))
 
                     reuse_candidates = True
 
@@ -150,6 +161,7 @@ class Generator:
                         # Reset current_puzzle to base_puzzle (clears number guesses)
                         current_puzzle = copy.deepcopy(base_puzzle)
                         extra_fills = 0
+                        guesses = []
 
                         # Recompute paths since arrows changed
                         path_cache = compute_all_paths(current_puzzle)
