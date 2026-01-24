@@ -31,6 +31,12 @@ class SolverStatus(Enum):
     UNDERCONSTRAINED = "UNDERCONSTRAINED"
 
 
+class ConclusionApplicationResult(Enum):
+    NO_PROGRESS = "NO_PROGRESS"
+    PROGRESS = "PROGRESS"
+    CONTRADICTION = "CONTRADICTION"
+
+
 @dataclass
 class SolverStep:
     """Records a single step where a rule made progress."""
@@ -53,7 +59,8 @@ class SolverResult:
 
 class Solver:
     def __init__(self, rules: List[Rule]):
-        self.rules = rules
+        self.rules = sorted(rules, key=lambda r: r.complexity)
+        self.max_rule_complexity = max((r.complexity for r in rules), default=1)
 
     def solve(self, puzzle: Puzzle) -> SolverResult:
         path_cache = compute_all_paths(puzzle)
@@ -67,48 +74,30 @@ class Solver:
 
         universe = self._create_universe(puzzle, path_cache)
 
-        num_rules = len(self.rules)
-        rule_idx = 0
-        consecutive_no_change = 0
+        current_complexity = 1
 
-        while consecutive_no_change < num_rules:
-            rule = self.rules[rule_idx]
-            rule_changed = False
+        while current_complexity <= self.max_rule_complexity:
+            applicable_rules = [r for r in self.rules if r.complexity <= current_complexity]
 
-            for witness in universe.check_all(rule.condition):
-                applied_conclusions: list[Conclusion] = []
-                for conclusion in rule.conclusions:
-                    if self._apply_conclusion(puzzle, conclusion, witness, universe):
-                        applied_conclusions.append(conclusion)
+            if not applicable_rules:
+                current_complexity += 1
+                continue
 
-                if applied_conclusions:
-                    rule_changed = True
-                    max_complexity_used = max(max_complexity_used, rule.complexity)
-                    rule_application_count[rule.name] += 1
-                    steps.append(
-                        SolverStep(
-                            rule_name=rule.name,
-                            witness=witness,
-                            conclusions_applied=applied_conclusions,
-                        )
-                    )
-                    # If state changed, previous witnesses might be invalid.
-                    # We break to re-evaluate or move to next rule.
-                    break
+            result = self._apply_rules_at_complexity(puzzle, applicable_rules, universe, steps, rule_application_count)
 
-            if rule_changed:
-                consecutive_no_change = 0
-            else:
-                consecutive_no_change += 1
+            if result.status == SolverStatus.NO_SOLUTION:
+                return SolverResult(
+                    status=SolverStatus.NO_SOLUTION,
+                    puzzle=puzzle,
+                    max_complexity_used=max(max_complexity_used, result.max_complexity_used),
+                    rule_application_count=rule_application_count,
+                    steps=steps,
+                )
 
-            rule_idx = (rule_idx + 1) % num_rules
+            max_complexity_used = max(max_complexity_used, result.max_complexity_used)
+            current_complexity += 1
 
-        if self._has_contradiction(puzzle):
-            status = SolverStatus.NO_SOLUTION
-        elif self._is_solved(puzzle):
-            status = SolverStatus.SOLVED
-        else:
-            status = SolverStatus.UNDERCONSTRAINED
+        status = self._determine_final_status(puzzle)
 
         return SolverResult(
             status=status,
@@ -117,6 +106,96 @@ class Solver:
             rule_application_count=rule_application_count,
             steps=steps,
         )
+
+    def _apply_rules_at_complexity(
+        self,
+        puzzle: Puzzle,
+        applicable_rules: list[Rule],
+        universe: Universe,
+        steps: list[SolverStep],
+        rule_application_count: Counter[str],
+    ) -> SolverResult:
+        num_rules = len(applicable_rules)
+        rule_idx = 0
+        consecutive_no_change = 0
+        max_complexity_used = 0
+
+        while consecutive_no_change < num_rules:
+            rule = applicable_rules[rule_idx]
+
+            result = self._try_apply_rule(puzzle, rule, universe)
+
+            if result.status == SolverStatus.NO_SOLUTION:
+                return SolverResult(
+                    status=SolverStatus.NO_SOLUTION,
+                    puzzle=puzzle,
+                    max_complexity_used=max_complexity_used,
+                    rule_application_count=rule_application_count,
+                    steps=steps,
+                )
+
+            if result.steps:
+                consecutive_no_change = 0
+                max_complexity_used = max(max_complexity_used, rule.complexity)
+                rule_application_count[rule.name] += len(result.steps)
+                steps.extend(result.steps)
+            else:
+                consecutive_no_change += 1
+
+            rule_idx = (rule_idx + 1) % num_rules
+
+        return SolverResult(
+            status=SolverStatus.UNDERCONSTRAINED,
+            puzzle=puzzle,
+            max_complexity_used=max_complexity_used,
+            rule_application_count=rule_application_count,
+            steps=steps,
+        )
+
+    def _try_apply_rule(self, puzzle: Puzzle, rule: Rule, universe: Universe) -> SolverResult:
+        for witness in universe.check_all(rule.condition):
+            applied_conclusions: list[Conclusion] = []
+
+            for conclusion in rule.conclusions:
+                result = self._apply_conclusion(puzzle, conclusion, witness, universe)
+
+                if result == ConclusionApplicationResult.CONTRADICTION:
+                    return SolverResult(
+                        status=SolverStatus.NO_SOLUTION,
+                        puzzle=puzzle,
+                        max_complexity_used=0,
+                        rule_application_count=Counter(),
+                        steps=[],
+                    )
+                elif result == ConclusionApplicationResult.PROGRESS:
+                    applied_conclusions.append(conclusion)
+
+            if applied_conclusions:
+                step = SolverStep(
+                    rule_name=rule.name,
+                    witness=witness,
+                    conclusions_applied=applied_conclusions,
+                )
+                return SolverResult(
+                    status=SolverStatus.UNDERCONSTRAINED,
+                    puzzle=puzzle,
+                    max_complexity_used=0,
+                    rule_application_count=Counter(),
+                    steps=[step],
+                )
+
+        return SolverResult(
+            status=SolverStatus.UNDERCONSTRAINED,
+            puzzle=puzzle,
+            max_complexity_used=0,
+            rule_application_count=Counter(),
+            steps=[],
+        )
+
+    def _determine_final_status(self, puzzle: Puzzle) -> SolverStatus:
+        if self._is_solved(puzzle):
+            return SolverStatus.SOLVED
+        return SolverStatus.UNDERCONSTRAINED
 
     def _initialize_candidates(self, puzzle: Puzzle) -> None:
         limit = max(puzzle.rows, puzzle.cols)
@@ -130,35 +209,39 @@ class Solver:
                     cell.candidates = {cell.number}
 
     def _apply_conclusion(
-        self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any], universe: Universe
-    ) -> bool:
+        self,
+        puzzle: Puzzle,
+        conclusion: Conclusion,
+        witness: dict[str, Any],
+        universe: Universe,
+        mock: bool = False,
+    ) -> ConclusionApplicationResult:
         p_val = self._eval_conclusion_term(conclusion.position, witness)
 
         if p_val == "OOB":
-            return False
+            return ConclusionApplicationResult.NO_PROGRESS
 
         r, c = p_val
         cell = puzzle.grid[r][c]
 
         if cell.number is not None and cell.candidates is not None and not cell.candidates:
-            return False
+            return ConclusionApplicationResult.NO_PROGRESS
 
         current_candidates = cell.candidates
         if cell.number is not None:
             current_candidates = {cell.number}
         elif current_candidates is None:
-            return False
+            return ConclusionApplicationResult.NO_PROGRESS
 
         new_candidates = current_candidates.copy()
 
         if isinstance(conclusion, SetVal):
             val = self._eval_conclusion_term(conclusion.value, witness)
             if not isinstance(val, int):
-                # If set(p, nil), this is a contradiction for valid puzzles or means no solution
-                # Mark as contradiction by emptying candidates
-                cell.candidates = set()
-                cell.number = None
-                return True
+                if not mock:
+                    cell.candidates = set()
+                    cell.number = None
+                return ConclusionApplicationResult.CONTRADICTION
             new_candidates.intersection_update({val})
 
         elif isinstance(conclusion, ExcludeVal):
@@ -175,7 +258,6 @@ class Solver:
                 elif conclusion.operator == "<=":
                     new_candidates = {c for c in new_candidates if not (c <= val)}
                 elif conclusion.operator == "!=":
-                    # exclude(p, != val) -> keep only val. Logic: "exclude values that are != val" -> "only val"
                     new_candidates = {c for c in new_candidates if not (c != val)}
 
         elif isinstance(conclusion, OnlyVal):
@@ -186,19 +268,20 @@ class Solver:
                     allowed.add(v)
             new_candidates.intersection_update(allowed)
 
-        # Check if changed
         if new_candidates != current_candidates:
             if not new_candidates:
-                cell.candidates = set()
-                return True
+                if not mock:
+                    cell.candidates = set()
+                return ConclusionApplicationResult.CONTRADICTION
 
-            cell.candidates = new_candidates
-            if len(new_candidates) == 1:
-                cell.number = next(iter(new_candidates))
+            if not mock:
+                cell.candidates = new_candidates
+                if len(new_candidates) == 1:
+                    cell.number = next(iter(new_candidates))
 
-            return True
+            return ConclusionApplicationResult.PROGRESS
 
-        return False
+        return ConclusionApplicationResult.NO_PROGRESS
 
     def _eval_conclusion_term(self, term: ConclusionTerm, witness: dict[str, Any]) -> Any:
         if isinstance(term, ConclusionVariable):
@@ -489,13 +572,6 @@ class Solver:
 
     def _is_solved(self, puzzle: Puzzle) -> bool:
         return puzzle.validate()
-
-    def _has_contradiction(self, puzzle: Puzzle) -> bool:
-        for row in puzzle.grid:
-            for cell in row:
-                if cell.candidates is not None and len(cell.candidates) == 0:
-                    return True
-        return False
 
 
 def compute_all_paths(puzzle: Puzzle) -> dict[tuple[int, int], list[tuple[int, int]]]:
