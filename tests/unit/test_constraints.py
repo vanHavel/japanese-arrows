@@ -90,6 +90,37 @@ def test_rule_complexity_fraction_range() -> None:
     assert constraint.check(trace) is False
 
 
+def test_rule_complexity_fraction_counts() -> None:
+    # Test min_count
+    constraint_min = RuleComplexityFraction(complexity=2, min_count=2)
+
+    step1 = MagicMock()
+    step1.rule_complexity = 2
+    step2 = MagicMock()
+    step2.rule_complexity = 1
+
+    trace = MagicMock()
+
+    # 1 rule of complexity 2 -> False
+    trace.steps = [step1, step2]
+    assert constraint_min.check(trace) is False
+
+    # 2 rules of complexity 2 -> True
+    trace.steps = [step1, step1, step2]
+    assert constraint_min.check(trace) is True
+
+    # Test max_count
+    constraint_max = RuleComplexityFraction(complexity=2, max_count=2)
+
+    # 2 rules of complexity 2 -> True
+    trace.steps = [step1, step1, step2]
+    assert constraint_max.check(trace) is True
+
+    # 3 rules of complexity 2 -> False
+    trace.steps = [step1, step1, step1, step2]
+    assert constraint_max.check(trace) is False
+
+
 def test_number_fraction() -> None:
     # 5x5 grid = 25 cells
     from japanese_arrows.models import Cell, Direction, Puzzle

@@ -5,7 +5,7 @@ from japanese_arrows.generator import (
     Generator,
     NumberFraction,
     PrefilledCellsFraction,
-    RuleComplexityFraction,
+    UsesRule,
 )
 from japanese_arrows.solver import SolverStatus, create_solver
 
@@ -14,13 +14,14 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 7
-    cols = 7
+    rows = 5
+    cols = 5
     allow_diagonals = False
-    max_complexity = 3
+    max_complexity = 5
+    prefilled_cells_count = 0
 
     constraints = [
-        RuleComplexityFraction(complexity=3, min_fraction=0.01, max_fraction=0.2),
+        UsesRule(rule_name="BACKTRACK_SIMPLE", min_count=2),
         NumberFraction(number=0, max_fraction=0.2),
         FollowingArrowsFraction(min_fraction=0.1),
         PrefilledCellsFraction(max_fraction=0.3),
@@ -34,8 +35,8 @@ def main() -> None:
         allow_diagonals=allow_diagonals,
         max_complexity=max_complexity,
         constraints=constraints,
-        prefilled_cells_count=10,
-        max_attempts=100,
+        prefilled_cells_count=prefilled_cells_count,
+        max_attempts=500,
     )
 
     if not puzzle:
@@ -48,6 +49,8 @@ def main() -> None:
     print(f"  Puzzles successfully generated: {stats.puzzles_successfully_generated}")
     print(f"  Puzzles rejected by no solution: {stats.puzzles_rejected_no_solution}")
     print(f"  Puzzles rejected by constraints: {stats.puzzles_rejected_constraints}")
+    for name, count in stats.rejections_per_constraint.items():
+        print(f"    - {name}: {count}")
 
     # Solve the puzzle
     if puzzle is not None:

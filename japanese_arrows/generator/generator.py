@@ -1,5 +1,5 @@
 import random
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from joblib import Parallel, delayed, effective_n_jobs
 
@@ -13,6 +13,7 @@ class GenerationStats:
     puzzles_successfully_generated: int = 0
     puzzles_rejected_constraints: int = 0
     puzzles_rejected_no_solution: int = 0
+    rejections_per_constraint: dict[str, int] = field(default_factory=dict)
 
 
 class Generator:
@@ -46,8 +47,16 @@ class Generator:
             if prefilled_cells_count > 0:
                 self._prefill_cells(current_puzzle, prefilled_cells_count)
 
-            if not all(c.pre_check(current_puzzle) for c in constraints):
-                stats.puzzles_rejected_constraints += 1
+            failed_pre_check = False
+            for constraint in constraints:
+                if not constraint.pre_check(current_puzzle):
+                    stats.puzzles_rejected_constraints += 1
+                    stats.rejections_per_constraint[constraint.name] = (
+                        stats.rejections_per_constraint.get(constraint.name, 0) + 1
+                    )
+                    failed_pre_check = True
+                    break
+            if failed_pre_check:
                 continue
 
             path_cache = compute_all_paths(current_puzzle)
@@ -57,11 +66,15 @@ class Generator:
                 trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
 
                 if trace.status == SolverStatus.SOLVED:
-                    if self._check_constraints(trace, constraints):
+                    failing_constraint = self._get_failing_constraint(trace, constraints)
+                    if failing_constraint is None:
                         stats.puzzles_successfully_generated += 1
                         return current_puzzle, stats
                     else:
                         stats.puzzles_rejected_constraints += 1
+                        stats.rejections_per_constraint[failing_constraint.name] = (
+                            stats.rejections_per_constraint.get(failing_constraint.name, 0) + 1
+                        )
                         break
 
                 elif trace.status == SolverStatus.UNDERCONSTRAINED:
@@ -139,6 +152,10 @@ class Generator:
             all_found_puzzles.extend(task_puzzles)
             overall_stats.puzzles_rejected_constraints += task_stats.puzzles_rejected_constraints
             overall_stats.puzzles_rejected_no_solution += task_stats.puzzles_rejected_no_solution
+            for name, count in task_stats.rejections_per_constraint.items():
+                overall_stats.rejections_per_constraint[name] = (
+                    overall_stats.rejections_per_constraint.get(name, 0) + count
+                )
 
         puzzles = all_found_puzzles[:max_count]
         overall_stats.puzzles_successfully_generated = len(puzzles)
@@ -202,11 +219,11 @@ class Generator:
             grid.append(row)
         return grid
 
-    def _check_constraints(self, trace: SolverResult, constraints: list[Constraint]) -> bool:
+    def _get_failing_constraint(self, trace: SolverResult, constraints: list[Constraint]) -> Constraint | None:
         for c in constraints:
             if not c.check(trace):
-                return False
-        return True
+                return c
+        return None
 
     def _prefill_cells(self, puzzle: Puzzle, count: int) -> None:
         all_coords = [(r, c) for r in range(puzzle.rows) for c in range(puzzle.cols)]

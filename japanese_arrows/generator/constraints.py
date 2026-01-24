@@ -13,6 +13,10 @@ class Constraint(ABC):
     def pre_check(self, puzzle: Puzzle) -> bool:
         return True
 
+    @property
+    def name(self) -> str:
+        return self.__class__.__name__
+
 
 class RuleComplexityFraction(Constraint):
     def __init__(
@@ -20,20 +24,31 @@ class RuleComplexityFraction(Constraint):
         complexity: int,
         min_fraction: Optional[float] = None,
         max_fraction: Optional[float] = None,
+        min_count: Optional[int] = None,
+        max_count: Optional[int] = None,
     ):
         self.complexity = complexity
         self.min_fraction = min_fraction
         self.max_fraction = max_fraction
+        self.min_count = min_count
+        self.max_count = max_count
 
     def check(self, trace: SolverResult) -> bool:
         steps = trace.steps
         total = len(steps)
+
+        comp_apps = sum(1 for s in steps if s.rule_complexity == self.complexity)
+
+        if self.min_count is not None and comp_apps < self.min_count:
+            return False
+        if self.max_count is not None and comp_apps > self.max_count:
+            return False
+
         if total == 0:
             if self.min_fraction is not None and self.min_fraction > 0:
                 return False
             return True
 
-        comp_apps = sum(1 for s in steps if s.rule_complexity == self.complexity)
         fraction = comp_apps / total
 
         if self.min_fraction is not None and fraction < self.min_fraction:
