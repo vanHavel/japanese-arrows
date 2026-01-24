@@ -1,6 +1,12 @@
 from collections import defaultdict
 
-from japanese_arrows.generator import FollowingArrowsFraction, Generator, NumberFraction, RuleComplexityFraction
+from japanese_arrows.generator import (
+    FollowingArrowsFraction,
+    Generator,
+    NumberFraction,
+    PrefilledCellsFraction,
+    RuleComplexityFraction,
+)
 from japanese_arrows.solver import SolverStatus, create_solver
 
 
@@ -8,15 +14,16 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 6
-    cols = 6
+    rows = 8
+    cols = 8
     allow_diagonals = False
-    max_complexity = 5
+    max_complexity = 3
 
     constraints = [
-        RuleComplexityFraction(complexity=max_complexity, min_fraction=0.01, max_fraction=0.2),
+        RuleComplexityFraction(complexity=3, min_fraction=0.01, max_fraction=0.2),
         NumberFraction(number=0, max_fraction=0.2),
         FollowingArrowsFraction(min_fraction=0.1),
+        PrefilledCellsFraction(max_fraction=0.3),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")

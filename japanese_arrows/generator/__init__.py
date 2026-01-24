@@ -2,6 +2,7 @@ from .constraints import (
     Constraint,
     FollowingArrowsFraction,
     NumberFraction,
+    PrefilledCellsFraction,
     RuleComplexityFraction,
     UsesRule,
 )
@@ -15,4 +16,5 @@ __all__ = [
     "NumberFraction",
     "UsesRule",
     "FollowingArrowsFraction",
+    "PrefilledCellsFraction",
 ]

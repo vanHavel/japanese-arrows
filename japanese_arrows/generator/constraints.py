@@ -182,3 +182,29 @@ class FollowingArrowsFraction(Constraint):
             return False
 
         return True
+
+
+class PrefilledCellsFraction(Constraint):
+    def __init__(self, min_fraction: Optional[float] = None, max_fraction: Optional[float] = None):
+        self.min_fraction = min_fraction
+        self.max_fraction = max_fraction
+
+    def check(self, trace: SolverResult) -> bool:
+        puzzle = trace.initial_puzzle
+        if puzzle is None:
+            # Fallback to current puzzle if initial not stored (should not happen with latest solver)
+            puzzle = trace.puzzle
+
+        total_cells = puzzle.rows * puzzle.cols
+        if total_cells == 0:
+            return True
+
+        count = sum(1 for row in puzzle.grid for cell in row if cell.number is not None)
+        fraction = count / total_cells
+
+        if self.min_fraction is not None and fraction < self.min_fraction:
+            return False
+        if self.max_fraction is not None and fraction > self.max_fraction:
+            return False
+
+        return True

@@ -272,3 +272,30 @@ def test_uses_rule() -> None:
 
     constraint = UsesRule(rule_name="RULE_C", min_count=1)
     assert constraint.check(trace) is False
+
+
+def test_prefilled_cells_fraction() -> None:
+    from japanese_arrows.generator.constraints import PrefilledCellsFraction
+    from japanese_arrows.models import Cell, Direction, Puzzle
+
+    # 2x2 grid
+    # (0,0) has a number, others don't -> 1/4 = 0.25
+    grid = [[Cell(Direction.NORTH) for _ in range(2)] for _ in range(2)]
+    grid[0][0].number = 1
+    puzzle = Puzzle(2, 2, grid)
+
+    trace = MagicMock()
+    trace.initial_puzzle = puzzle
+
+    constraint = PrefilledCellsFraction(min_fraction=0.2, max_fraction=0.3)
+    assert constraint.check(trace) is True
+
+    constraint_fail = PrefilledCellsFraction(min_fraction=0.3)
+    assert constraint_fail.check(trace) is False
+
+    # 3/4 = 0.75
+    grid[0][1].number = 2
+    grid[1][0].number = 3
+    puzzle2 = Puzzle(2, 2, grid)
+    trace.initial_puzzle = puzzle2
+    assert PrefilledCellsFraction(min_fraction=0.7, max_fraction=0.8).check(trace) is True

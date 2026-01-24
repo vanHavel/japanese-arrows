@@ -63,6 +63,7 @@ class SolverResult:
     rule_application_count: Counter[str]
     rule_execution_time: dict[str, float] = field(default_factory=dict)
     steps: list[SolverStep] = field(default_factory=list)
+    initial_puzzle: Puzzle | None = None
 
 
 class Solver:
@@ -78,6 +79,9 @@ class Solver:
     ) -> SolverResult:
         if path_cache is None:
             path_cache = compute_all_paths(puzzle)
+
+        # IMPORTANT: Capture initial state before modification
+        initial_puzzle_copy = copy.deepcopy(puzzle)
 
         # Work on a copy unless we explicitly trust the input (but standard practice is copy)
         # However, for generator speed, we might want to avoid copying IF we know what we are doing.
@@ -123,6 +127,7 @@ class Solver:
                     rule_application_count=rule_application_count,
                     rule_execution_time=rule_execution_time,
                     steps=steps,
+                    initial_puzzle=initial_puzzle_copy,
                 )
 
             max_complexity_used = max(max_complexity_used, result.max_complexity_used)
@@ -137,6 +142,7 @@ class Solver:
             rule_application_count=rule_application_count,
             rule_execution_time=rule_execution_time,
             steps=steps,
+            initial_puzzle=initial_puzzle_copy,
         )
 
     def _apply_rules_at_complexity(
