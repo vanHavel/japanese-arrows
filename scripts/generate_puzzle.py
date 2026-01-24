@@ -2,8 +2,9 @@ from collections import defaultdict
 
 from japanese_arrows.generator import (
     FollowingArrowsFraction,
+    GenerationStats,
     Generator,
-    PrefilledCellsFraction,
+    RuleComplexityFraction,
 )
 from japanese_arrows.solver import SolverStatus, create_solver
 
@@ -19,14 +20,17 @@ def main() -> None:
     prefilled_cells_count = 0
 
     constraints = [
-        FollowingArrowsFraction(min_fraction=0.1),
-        PrefilledCellsFraction(max_fraction=0.3),
+        FollowingArrowsFraction(min_fraction=0.05),
+        RuleComplexityFraction(complexity=3, min_fraction=0.01),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")
 
-    puzzles, stats = gen.generate_many(
-        max_count=8,
+    puzzles = []
+    stats = GenerationStats()
+
+    generator_iterator = gen.generate_many(
+        max_count=1,
         n_jobs=8,
         rows=rows,
         cols=cols,
@@ -37,7 +41,23 @@ def main() -> None:
         max_attempts=8,
     )
 
-    puzzle = puzzles[0] if puzzles else None
+    for batch_puzzles, batch_stats in generator_iterator:
+        puzzles.extend(batch_puzzles)
+        stats.puzzles_successfully_generated += len(batch_puzzles)
+        stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
+        stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
+        for name, count in batch_stats.rejections_per_constraint.items():
+            stats.rejections_per_constraint[name] = stats.rejections_per_constraint.get(name, 0) + count
+
+        puzzle = None
+        # We can enable early exit if we found enough puzzles,
+        # but for now let's just collect all results as configured by max_count/attempts.
+        if puzzles:
+            print(f"  Found {len(batch_puzzles)} new puzzles (Total: {len(puzzles)})")
+            puzzle = puzzles[0]
+            break
+        else:
+            print("No puzzles generated in this batch.")
 
     if not puzzle:
         print("\nCould not generate puzzle within max attempts")

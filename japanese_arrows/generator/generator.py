@@ -1,8 +1,10 @@
 import copy
 import random
+from collections.abc import Iterator
+from concurrent.futures import ProcessPoolExecutor, as_completed
 from dataclasses import dataclass, field
 
-from joblib import Parallel, delayed, effective_n_jobs
+from joblib import effective_n_jobs
 
 from japanese_arrows.generator.constraints import Constraint
 from japanese_arrows.models import Cell, Direction, Puzzle
@@ -19,6 +21,7 @@ class GenerationStats:
 
 class Generator:
     OUTWARD_ARROWS_THRESHOLD = 0.1
+    MAX_MODIFICATIONS = 3
 
     def generate(
         self,
@@ -33,6 +36,7 @@ class Generator:
     ) -> tuple[Puzzle | None, GenerationStats]:
         solver = create_solver(max_complexity=max_complexity)
         stats = _stats if _stats is not None else GenerationStats()
+        extra_fills = 0
 
         while True:
             total_attempts = (
@@ -68,7 +72,6 @@ class Generator:
             reuse_candidates = False
             base_puzzle = copy.deepcopy(current_puzzle)
             modifications = 0
-            max_modifications = 10
 
             while True:
                 trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
@@ -109,13 +112,14 @@ class Generator:
 
                     cell.number = val
                     cell.candidates = {val}
+                    extra_fills += 1
 
                     reuse_candidates = True
 
                     # Continue inner loop
 
                 else:
-                    if modifications < max_modifications and trace.contradiction_location is not None:
+                    if modifications < self.MAX_MODIFICATIONS and trace.contradiction_location is not None:
                         # Contradiction found, try to rotate the arrow at the contradiction
                         r, c = trace.contradiction_location
 
@@ -156,46 +160,47 @@ class Generator:
         prefilled_cells_count: int = 0,
         max_attempts: int = 1000,
         n_jobs: int = 1,
-    ) -> tuple[list[Puzzle], GenerationStats]:
-        n_tasks = max(max_count, effective_n_jobs(n_jobs)) if n_jobs != 1 else 1
-
+    ) -> Iterator[tuple[list[Puzzle], GenerationStats]]:
         n_workers = effective_n_jobs(n_jobs)
-        n_tasks = max(max_count, n_workers) if max_count == 1 else n_workers
+        if n_jobs == 1:
+            n_tasks = 1
+            n_workers = 1
+        else:
+            n_tasks = max(max_count, n_workers)
 
-        attempts_per_task = max_attempts // n_tasks
-        target_puzzles_per_task = (max_count + n_tasks - 1) // n_tasks
+        attempts_per_task = max_attempts // n_tasks if n_tasks > 0 else max_attempts
+        target_puzzles_per_task = (max_count + n_tasks - 1) // n_tasks if n_tasks > 0 else max_count
 
-        results = Parallel(n_jobs=n_jobs)(
-            delayed(self._generate_batch)(
-                target_count=target_puzzles_per_task,
-                max_attempts=attempts_per_task,
-                rows=rows,
-                cols=cols,
-                allow_diagonals=allow_diagonals,
-                max_complexity=max_complexity,
-                constraints=constraints,
-                prefilled_cells_count=prefilled_cells_count,
-            )
-            for _ in range(n_tasks)
-        )
-
-        puzzles: list[Puzzle] = []
-        overall_stats = GenerationStats()
-
-        all_found_puzzles = []
-        for task_puzzles, task_stats in results:
-            all_found_puzzles.extend(task_puzzles)
-            overall_stats.puzzles_rejected_constraints += task_stats.puzzles_rejected_constraints
-            overall_stats.puzzles_rejected_no_solution += task_stats.puzzles_rejected_no_solution
-            for name, count in task_stats.rejections_per_constraint.items():
-                overall_stats.rejections_per_constraint[name] = (
-                    overall_stats.rejections_per_constraint.get(name, 0) + count
+        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+            futures = [
+                executor.submit(
+                    self._generate_batch,
+                    target_count=target_puzzles_per_task,
+                    max_attempts=attempts_per_task,
+                    rows=rows,
+                    cols=cols,
+                    allow_diagonals=allow_diagonals,
+                    max_complexity=max_complexity,
+                    constraints=constraints,
+                    prefilled_cells_count=prefilled_cells_count,
                 )
+                for _ in range(n_tasks)
+            ]
 
-        puzzles = all_found_puzzles[:max_count]
-        overall_stats.puzzles_successfully_generated = len(puzzles)
+            puzzles_yielded = 0
+            for future in as_completed(futures):
+                batch_puzzles, batch_stats = future.result()
 
-        return puzzles, overall_stats
+                # If we already have enough, we might still yield the leftovers of this batch
+                # but we should definitely stop after this.
+                yield batch_puzzles, batch_stats
+
+                puzzles_yielded += len(batch_puzzles)
+                if puzzles_yielded >= max_count:
+                    # Cancel remaining futures if possible
+                    for f in futures:
+                        f.cancel()
+                    break
 
     def _generate_batch(
         self,
