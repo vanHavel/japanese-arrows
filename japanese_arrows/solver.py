@@ -45,7 +45,10 @@ class SolverStep:
 
     rule_name: str
     witness: dict[str, Any]
+
     conclusions_applied: list[Conclusion]
+    puzzle_state: "Puzzle"
+    contradiction_trace: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -204,6 +207,7 @@ class Solver:
                     rule_name=rule.name,
                     witness=witness,
                     conclusions_applied=applied_conclusions,
+                    puzzle_state=copy.deepcopy(puzzle),
                 )
                 return SolverResult(
                     status=SolverStatus.UNDERCONSTRAINED,
@@ -221,11 +225,12 @@ class Solver:
             steps=[],
         )
 
-    def _check_consistency(self, puzzle: Puzzle, path_cache: dict[tuple[int, int], list[tuple[int, int]]]) -> bool:
+    def _check_consistency(
+        self, puzzle: Puzzle, path_cache: dict[tuple[int, int], list[tuple[int, int]]]
+    ) -> tuple[bool, str | None]:
         """
         Checks if the current partial state is consistent using precomputed paths.
-        Returns False if a contradiction is detected (e.g. empty candidates,
-        filled number conflicts with geometry).
+        Returns (False, Reason) if a contradiction is detected.
         """
         for r in range(puzzle.rows):
             for c in range(puzzle.cols):
@@ -233,7 +238,7 @@ class Solver:
 
                 if cell.number is None:
                     if not cell.candidates:
-                        return False
+                        return False, f"Cell ({r},{c}) has no candidates left"
 
                 if cell.number is not None:
                     seen_values = set()
@@ -246,9 +251,9 @@ class Solver:
                             seen_values.add(target.number)
 
                     if len(seen_values) > cell.number:
-                        return False
+                        return False, f"Cell ({r},{c}) sees {len(seen_values)} distinct values (> {cell.number})"
 
-        return True
+        return True, None
 
     def _apply_backtrack_rule(
         self,
@@ -283,14 +288,18 @@ class Solver:
                     cell.candidates = {val}
 
                     contradiction_found = False
+                    trace: list[str] | None = None
 
-                    if self._find_contradiction_dfs(puzzle, hypothesis_rules, universe, path_cache, rule.rule_depth):
+                    trace = self._find_contradiction_dfs(
+                        puzzle, hypothesis_rules, universe, path_cache, rule.rule_depth
+                    )
+                    if trace is not None:
                         contradiction_found = True
 
                 finally:
                     puzzle.grid = original_grid
 
-                if contradiction_found:
+                if contradiction_found and trace is not None:
                     backtrack_witness = {"p": (r, c)}
                     conclusion = ExcludeVal(
                         position=ConclusionVariable("p"), operator="=", value=ConclusionConstant(val)
@@ -309,7 +318,11 @@ class Solver:
 
                     if apply_res == ConclusionApplicationResult.PROGRESS:
                         step = SolverStep(
-                            rule_name=rule.name, witness=backtrack_witness, conclusions_applied=[conclusion]
+                            rule_name=rule.name,
+                            witness=backtrack_witness,
+                            conclusions_applied=[conclusion],
+                            contradiction_trace=[f"Assuming {r},{c} is {val}:"] + trace,
+                            puzzle_state=copy.deepcopy(puzzle),
                         )
                         return SolverResult(
                             status=SolverStatus.UNDERCONSTRAINED,
@@ -334,12 +347,13 @@ class Solver:
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
         budget: int,
-    ) -> bool:
-        if not self._check_consistency(puzzle, path_cache):
-            return True
+    ) -> list[str] | None:
+        valid, reason = self._check_consistency(puzzle, path_cache)
+        if not valid:
+            return [f"Inconsistent state: {reason}"]
 
         if budget <= 0:
-            return False
+            return None
 
         # Gather all applicable moves (rule, witness, conclusion)
         # Note: This can be expensive; we re-evaluate all rules at each node.
@@ -367,19 +381,24 @@ class Solver:
                 # No progress
                 continue
 
+            step_desc = f"Applied {rule.name} with {witness} -> {conclusion}"
+
             # Check for immediate contradiction
             if undo_op == "CONTRADICTION":
-                return True
+                return [step_desc, "CONTRADICTION"]
 
             # Recurse
-            if self._find_contradiction_dfs(puzzle, rules, universe, path_cache, budget - 1):
-                return True
+            trace = self._find_contradiction_dfs(puzzle, rules, universe, path_cache, budget - 1)
+            if trace is not None:
+                if callable(undo_op):
+                    undo_op()
+                return [step_desc] + trace
 
             # Backtrack
             if callable(undo_op):
                 undo_op()
 
-        return False
+        return None
 
     def _determine_final_status(self, puzzle: Puzzle) -> SolverStatus:
         if self._is_solved(puzzle):
