@@ -284,39 +284,8 @@ class Solver:
 
                     contradiction_found = False
 
-                    total_steps = 0
-                    limit = rule.rule_depth
-
-                    for complexity in range(1, rule.max_rule_complexity + 1):
-                        if total_steps >= limit:
-                            break
-
-                        rules_at_c = [rule for rule in hypothesis_rules if rule.complexity <= complexity]
-                        if not rules_at_c:
-                            continue
-
-                        mock_steps: list[SolverStep] = []
-                        mock_counts: Counter[str] = Counter()
-
-                        res = self._apply_rules_at_complexity(
-                            puzzle,
-                            rules_at_c,
-                            universe,
-                            mock_steps,
-                            mock_counts,
-                            path_cache,
-                            max_steps=limit - total_steps,
-                        )
-
-                        if res.status == SolverStatus.NO_SOLUTION:
-                            contradiction_found = True
-                            break
-
-                        total_steps += len(res.steps)
-
-                    if not contradiction_found:
-                        if not self._check_consistency(puzzle, path_cache):
-                            contradiction_found = True
+                    if self._find_contradiction_dfs(puzzle, hypothesis_rules, universe, path_cache, rule.rule_depth):
+                        contradiction_found = True
 
                 finally:
                     puzzle.grid = original_grid
@@ -357,6 +326,60 @@ class Solver:
             rule_application_count=Counter(),
             steps=[],
         )
+
+    def _find_contradiction_dfs(
+        self,
+        puzzle: Puzzle,
+        rules: list[Rule],
+        universe: Universe,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+        budget: int,
+    ) -> bool:
+        if not self._check_consistency(puzzle, path_cache):
+            return True
+
+        if budget <= 0:
+            return False
+
+        # Gather all applicable moves (rule, witness, conclusion)
+        # Note: This can be expensive; we re-evaluate all rules at each node.
+        moves: list[tuple[Rule, dict[str, Any], Conclusion]] = []
+
+        for rule in rules:
+            if not isinstance(rule, FORule):
+                continue
+
+            # Since we modify the grid in place, checks must be dynamic
+            witnesses = universe.check_all(rule.condition)
+            for witness in witnesses:
+                for conclusion in rule.conclusions:
+                    # Check if conclusion would make progress (without fully applying)
+                    # We can reuse _apply_conclusion logic but we need to know if it progresses
+                    # For performance, we might just try applying it.
+                    moves.append((rule, witness, conclusion))
+
+        # Heuristic: Try moves? Or just iterate.
+        # Simple DFS:
+        for rule, witness, conclusion in moves:
+            undo_op = self._apply_conclusion_with_undo(puzzle, conclusion, witness)
+
+            if undo_op is None:
+                # No progress
+                continue
+
+            # Check for immediate contradiction
+            if undo_op == "CONTRADICTION":
+                return True
+
+            # Recurse
+            if self._find_contradiction_dfs(puzzle, rules, universe, path_cache, budget - 1):
+                return True
+
+            # Backtrack
+            if callable(undo_op):
+                undo_op()
+
+        return False
 
     def _determine_final_status(self, puzzle: Puzzle) -> SolverStatus:
         if self._is_solved(puzzle):
@@ -444,6 +467,89 @@ class Solver:
             return ConclusionApplicationResult.PROGRESS
 
         return ConclusionApplicationResult.NO_PROGRESS
+
+    def _apply_conclusion_with_undo(
+        self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any]
+    ) -> Callable[[], None] | str | None:
+        """
+        Applies a conclusion.
+        Returns:
+          - A callable (undo function) if PROGRESS was made.
+          - "CONTRADICTION" string if a contradiction was found.
+          - None if NO_PROGRESS.
+        """
+        p_val = self._eval_conclusion_term(conclusion.position, witness)
+        if p_val == "OOB":
+            return None
+
+        r, c = p_val
+        cell = puzzle.grid[r][c]
+
+        if cell.number is not None and cell.candidates is not None and not cell.candidates:
+            return None
+
+        current_candidates = cell.candidates
+        current_number = cell.number
+
+        if current_number is not None:
+            eff_candidates = {current_number}
+        elif current_candidates is not None:
+            eff_candidates = current_candidates
+        else:
+            return None  # Should not happen
+
+        new_candidates = eff_candidates.copy()
+
+        if isinstance(conclusion, SetVal):
+            val = self._eval_conclusion_term(conclusion.value, witness)
+            if not isinstance(val, int):
+                return "CONTRADICTION"
+            new_candidates.intersection_update({val})
+
+        elif isinstance(conclusion, ExcludeVal):
+            val = self._eval_conclusion_term(conclusion.value, witness)
+            if isinstance(val, int):
+                if conclusion.operator == "=":
+                    new_candidates.discard(val)
+                elif conclusion.operator == ">":
+                    new_candidates = {c for c in new_candidates if not (c > val)}
+                elif conclusion.operator == "<":
+                    new_candidates = {c for c in new_candidates if not (c < val)}
+                elif conclusion.operator == ">=":
+                    new_candidates = {c for c in new_candidates if not (c >= val)}
+                elif conclusion.operator == "<=":
+                    new_candidates = {c for c in new_candidates if not (c <= val)}
+                elif conclusion.operator == "!=":
+                    new_candidates = {c for c in new_candidates if not (c != val)}
+
+        elif isinstance(conclusion, OnlyVal):
+            allowed = set()
+            for v_term in conclusion.values:
+                v = self._eval_conclusion_term(v_term, witness)
+                if isinstance(v, int):
+                    allowed.add(v)
+            new_candidates.intersection_update(allowed)
+
+        if new_candidates != eff_candidates:
+            if not new_candidates:
+                return "CONTRADICTION"
+
+            # Apply change
+            old_candidates_obj = cell.candidates
+            old_number_obj = cell.number
+
+            cell.candidates = new_candidates
+            if len(new_candidates) == 1:
+                cell.number = next(iter(new_candidates))
+
+            # Undo closure
+            def undo() -> None:
+                cell.candidates = old_candidates_obj
+                cell.number = old_number_obj
+
+            return undo
+
+        return None
 
     def _eval_conclusion_term(self, term: ConclusionTerm, witness: dict[str, Any]) -> Any:
         if isinstance(term, ConclusionVariable):
