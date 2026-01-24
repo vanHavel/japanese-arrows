@@ -17,6 +17,7 @@ from japanese_arrows.rules import (
     ConclusionTerm,
     ConclusionVariable,
     ExcludeVal,
+    FORule,
     OnlyVal,
     Rule,
     SetVal,
@@ -153,6 +154,16 @@ class Solver:
         )
 
     def _try_apply_rule(self, puzzle: Puzzle, rule: Rule, universe: Universe) -> SolverResult:
+        if not isinstance(rule, FORule):
+            # Backtrack rules (and others) are not yet implemented for application
+            return SolverResult(
+                status=SolverStatus.UNDERCONSTRAINED,
+                puzzle=puzzle,
+                max_complexity_used=0,
+                rule_application_count=Counter(),
+                steps=[],
+            )
+
         for witness in universe.check_all(rule.condition):
             applied_conclusions: list[Conclusion] = []
 
@@ -647,14 +658,15 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
     for rule_dict in rules_data:
         rule = parse_rule(rule_dict)
         if max_complexity is None or rule.complexity <= max_complexity:
-            # Type check before optimization
-            check_rule(rule, type_constants, type_functions, type_relations)
+            if isinstance(rule, FORule):
+                # Type check before optimization
+                check_rule(rule, type_constants, type_functions, type_relations)
 
-            # Optimize the rule condition (miniscoping quantifiers)
-            rule.condition = optimize(rule.condition)
+                # Optimize the rule condition (miniscoping quantifiers)
+                rule.condition = optimize(rule.condition)
 
-            # Type check after optimization
-            check_rule(rule, type_constants, type_functions, type_relations)
+                # Type check after optimization
+                check_rule(rule, type_constants, type_functions, type_relations)
 
             all_rules.append(rule)
 

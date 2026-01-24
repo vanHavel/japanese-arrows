@@ -18,6 +18,7 @@ from japanese_arrows.rules import (
     ForAllNumber,
     ForAllPosition,
     Formula,
+    FORule,
     FunctionCall,
     Not,
     OnlyVal,
@@ -53,6 +54,10 @@ def check_rule(
     """
     Checks if a rule is well-typed.
     """
+    if not isinstance(rule, FORule):
+        # Only FORules have conditions and conclusions to check
+        return
+
     # 1. Check condition
     check_condition(rule.condition, constants, functions, relations)
 

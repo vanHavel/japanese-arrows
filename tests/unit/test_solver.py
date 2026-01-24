@@ -7,8 +7,8 @@ from japanese_arrows.rules import (
     Equality,
     ExcludeVal,
     ExistsPosition,
+    FORule,
     FunctionCall,
-    Rule,
     SetVal,
 )
 from japanese_arrows.solver import Solver, SolverStatus
@@ -130,7 +130,7 @@ def test_apply_simple_rule() -> None:
     # Conclusion: set(p, 1)
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
 
-    rule = Rule(name="fill_one", condition=cond, conclusions=[concl])
+    rule = FORule(name="fill_one", condition=cond, conclusions=[concl])
 
     puzzle = create_simple_puzzle()
     solver = Solver([rule])
@@ -175,7 +175,7 @@ def test_contradiction() -> None:
     p_var = ConditionVariable("p")
     cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(1)))
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
-    rule = Rule("contradict", cond, [concl])
+    rule = FORule("contradict", cond, [concl])
 
     solver = Solver([rule])
     result = solver.solve(puzzle)
@@ -196,7 +196,7 @@ def test_contradiction_prefilled_removal() -> None:
     # Conclusion: exclude(p, =, 0)
     concl = ExcludeVal(ConclusionVariable("p"), "=", ConclusionConstant(0))
 
-    rule = Rule("exclude_zero", cond, [concl])
+    rule = FORule("exclude_zero", cond, [concl])
 
     solver = Solver([rule])
     result = solver.solve(puzzle)
@@ -214,7 +214,7 @@ def test_solver_result_steps_trace() -> None:
     p_var = ConditionVariable("p")
     cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
-    rule = Rule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
+    rule = FORule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
 
     solver = Solver([rule])
     result = solver.solve(puzzle)
@@ -238,12 +238,12 @@ def test_solver_result_max_complexity_used() -> None:
     # Low complexity rule: sets first empty cell to 0
     cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
     concl1 = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
-    rule1 = Rule(name="low_complexity", condition=cond1, conclusions=[concl1], complexity=1)
+    rule1 = FORule(name="low_complexity", condition=cond1, conclusions=[concl1], complexity=1)
 
     # Higher complexity rule that will never match (no cell has value 99)
     cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(99)))
     concl2 = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
-    rule2 = Rule(name="high_complexity", condition=cond2, conclusions=[concl2], complexity=5)
+    rule2 = FORule(name="high_complexity", condition=cond2, conclusions=[concl2], complexity=5)
 
     solver = Solver([rule1, rule2])
     result = solver.solve(puzzle)
@@ -261,7 +261,7 @@ def test_solver_result_rule_application_count() -> None:
     p_var = ConditionVariable("p")
     cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
     concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
-    rule = Rule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
+    rule = FORule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
 
     solver = Solver([rule])
     result = solver.solve(puzzle)
@@ -282,13 +282,13 @@ def test_solver_result_multiple_rules_count() -> None:
     # Rule 1: fill empty cells with 0
     cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
     concl1 = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
-    rule1 = Rule(name="fill_nil", condition=cond1, conclusions=[concl1], complexity=1)
+    rule1 = FORule(name="fill_nil", condition=cond1, conclusions=[concl1], complexity=1)
 
     # Rule 2: would exclude 0 from cells with 0 (causes contradiction, but tests counting)
     # Actually let's use a rule that simply doesn't match
     cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(99)))
     concl2 = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
-    rule2 = Rule(name="never_matches", condition=cond2, conclusions=[concl2], complexity=3)
+    rule2 = FORule(name="never_matches", condition=cond2, conclusions=[concl2], complexity=3)
 
     solver = Solver([rule1, rule2])
     result = solver.solve(puzzle)

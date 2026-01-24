@@ -220,8 +220,13 @@ class OnlyVal(Conclusion):
 # --- Rule ---
 
 
+class Rule(ABC):
+    name: str
+    complexity: int
+
+
 @dataclass
-class Rule:
+class FORule(Rule):
     name: str
     condition: Formula
     conclusions: list[Conclusion]
@@ -230,8 +235,26 @@ class Rule:
     def __str__(self) -> str:
         conclusions_str = "\n    - ".join(str(c) for c in self.conclusions)
         return (
-            f"Rule {self.name}:\n"
+            f"FORule {self.name}:\n"
             f"  Condition: {self.condition}\n"
             f"  Complexity: {self.complexity}\n"
             f"  Conclusions:\n    - {conclusions_str}"
+        )
+
+
+@dataclass
+class BacktrackRule(Rule):
+    name: str
+    complexity: int
+    backtrack_depth: int
+    rule_depth: int
+    max_rule_complexity: int
+
+    def __str__(self) -> str:
+        return (
+            f"BacktrackRule {self.name}:\n"
+            f"  Complexity: {self.complexity}\n"
+            f"  Backtrack Depth: {self.backtrack_depth}\n"
+            f"  Rule Depth: {self.rule_depth}\n"
+            f"  Max Rule Complexity: {self.max_rule_complexity}"
         )

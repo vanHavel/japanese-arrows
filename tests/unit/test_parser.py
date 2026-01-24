@@ -3,11 +3,13 @@ import pytest
 from japanese_arrows.parser import parse_rule, tokenize
 from japanese_arrows.rules import (
     And,
+    BacktrackRule,
     Calculation,
     Equality,
     ExcludeVal,
     ExistsNumber,
     ExistsPosition,
+    FORule,
     FunctionCall,
     Not,
     OnlyVal,
@@ -35,6 +37,7 @@ def test_parse_simple_relation() -> None:
         }
     )
     assert rule.name == "TEST"
+    assert isinstance(rule, FORule)
 
     # Verify Relation atom in condition
     assert isinstance(rule.condition, Relation)
@@ -60,6 +63,7 @@ def test_parse_quantifiers() -> None:
     )
 
     # Verify existential prefix variables are typed correctly
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     assert len(rule.condition.variables) == 1
     assert rule.condition.variables[0].name == "p"
@@ -83,6 +87,7 @@ def test_parse_grouped_quantifiers_same_type() -> None:
         }
     )
 
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     assert len(rule.condition.variables) == 2
     assert rule.condition.variables[0].name == "p"
@@ -98,6 +103,7 @@ def test_parse_logic_operators() -> None:
         }
     )
 
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
     assert isinstance(inner, And)
@@ -115,6 +121,7 @@ def test_parse_implication_desugar() -> None:
 
     # points_at -> val=val  ==>  !points_at v val=val
 
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
     assert isinstance(inner, Or)
@@ -132,6 +139,7 @@ def test_complex_conclusions() -> None:
         }
     )
 
+    assert isinstance(rule, FORule)
     assert len(rule.conclusions) == 3
 
     c1 = rule.conclusions[0]
@@ -162,6 +170,7 @@ def test_complex_condition_terms() -> None:
         }
     )
 
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
     assert isinstance(inner, Equality)
@@ -186,6 +195,7 @@ def test_neq_sugar() -> None:
         }
     )
 
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
     inner = rule.condition.formula
     # p != q  ==>  !(p = q)
@@ -202,6 +212,7 @@ def test_parse_rule_name() -> None:
         }
     )
     assert rule.name == "INFER-TOWER"
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, ExistsPosition)
 
 
@@ -247,4 +258,24 @@ def test_parse_rule_empty_condition() -> None:
         }
     )
     # Empty condition should be a tautology (0 = 0)
+    assert isinstance(rule, FORule)
     assert isinstance(rule.condition, Equality)
+
+
+def test_parse_backtrack_rule() -> None:
+    rule = parse_rule(
+        {
+            "name": "BACKTRACK_TEST",
+            "kind": "Backtrack",
+            "complexity": 4,
+            "backtrack_depth": 1,
+            "rule_depth": 2,
+            "max_rule_complexity": 3,
+        }
+    )
+    assert isinstance(rule, BacktrackRule)
+    assert rule.name == "BACKTRACK_TEST"
+    assert rule.complexity == 4
+    assert rule.backtrack_depth == 1
+    assert rule.rule_depth == 2
+    assert rule.max_rule_complexity == 3

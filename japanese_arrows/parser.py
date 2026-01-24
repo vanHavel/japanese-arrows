@@ -2,6 +2,7 @@ import re
 
 from japanese_arrows.rules import (
     And,
+    BacktrackRule,
     Calculation,
     Conclusion,
     ConclusionConstant,
@@ -18,6 +19,7 @@ from japanese_arrows.rules import (
     ForAllNumber,
     ForAllPosition,
     Formula,
+    FORule,
     FunctionCall,
     Not,
     OnlyVal,
@@ -97,14 +99,14 @@ class RuleParser:
         self.tokens = tokenize(text)
         self.pos = 0
 
-    def parse_rule(self) -> Rule:
+    def parse_rule(self) -> FORule:
         name_token = self.consume("IDENTIFIER")
         name = name_token.value
         self.consume("COLON")
 
         condition = self.parse_formula()
         conclusions = self.parse_conclusions()
-        return Rule(name, condition, conclusions)
+        return FORule(name, condition, conclusions)
 
     def parse_conclusions(self) -> list[Conclusion]:
         conclusions = []
@@ -359,39 +361,66 @@ class RuleParser:
 def parse_rule(rule_dict: dict[str, object]) -> Rule:
     """Parse a rule from a dictionary.
 
-    Expected format:
+    Expected format for FO rules:
         {
             "name": "RULE-NAME",
+            "kind": "FO",
             "condition": "exists p (ahead(p) = 0)",
             "complexity": 1,
             "conclusions": ["set(p, 0)", "exclude(p, >1)"]
         }
+
+    Expected format for Backtrack rules:
+        {
+            "name": "BACKTRACK_SIMPLE_1",
+            "kind": "Backtrack",
+            "complexity": 4,
+            "backtrack_depth": 1,
+            "rule_depth": 1,
+            "max_rule_complexity": 2
+        }
     """
-    # Name is required
     if "name" not in rule_dict or not rule_dict["name"]:
         raise ValueError("Rule must have a 'name' field")
     name = str(rule_dict["name"])
 
-    condition_str = str(rule_dict.get("condition", ""))
+    kind = str(rule_dict.get("kind", "FO"))
     complexity_raw = rule_dict.get("complexity", 1)
     complexity = int(complexity_raw) if isinstance(complexity_raw, (int, str)) else 1
-    conclusions_list = rule_dict.get("conclusions", [])
 
-    # Parse condition
-    if condition_str.strip():
-        condition_parser = RuleParser(condition_str)
-        condition = condition_parser.parse_formula()
+    if kind == "Backtrack":
+        bd_raw = rule_dict.get("backtrack_depth", 1)
+        backtrack_depth = int(bd_raw) if isinstance(bd_raw, (int, str)) else 1
+
+        rd_raw = rule_dict.get("rule_depth", 1)
+        rule_depth = int(rd_raw) if isinstance(rd_raw, (int, str)) else 1
+
+        mrc_raw = rule_dict.get("max_rule_complexity", 1)
+        max_rule_complexity = int(mrc_raw) if isinstance(mrc_raw, (int, str)) else 1
+
+        return BacktrackRule(
+            name=name,
+            complexity=complexity,
+            backtrack_depth=backtrack_depth,
+            rule_depth=rule_depth,
+            max_rule_complexity=max_rule_complexity,
+        )
     else:
-        # Empty condition represents a tautology (always true)
-        from japanese_arrows.rules import ConditionConstant, Equality
+        condition_str = str(rule_dict.get("condition", ""))
+        conclusions_list = rule_dict.get("conclusions", [])
 
-        condition = Equality(ConditionConstant(0), ConditionConstant(0))
+        if condition_str.strip():
+            condition_parser = RuleParser(condition_str)
+            condition = condition_parser.parse_formula()
+        else:
+            from japanese_arrows.rules import ConditionConstant, Equality
 
-    # Parse conclusions
-    conclusions: list[Conclusion] = []
-    if isinstance(conclusions_list, list):
-        for conc_str in conclusions_list:
-            conc_parser = RuleParser(str(conc_str))
-            conclusions.append(conc_parser.parse_conclusion())
+            condition = Equality(ConditionConstant(0), ConditionConstant(0))
 
-    return Rule(name, condition, conclusions, complexity)
+        conclusions: list[Conclusion] = []
+        if isinstance(conclusions_list, list):
+            for conc_str in conclusions_list:
+                conc_parser = RuleParser(str(conc_str))
+                conclusions.append(conc_parser.parse_conclusion())
+
+        return FORule(name, condition, conclusions, complexity)
