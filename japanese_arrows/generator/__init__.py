@@ -1,7 +1,7 @@
 from .constraints import (
     Constraint,
     NumberFraction,
-    RuleApplicationsOfMaxComplexity,
+    RuleComplexityFraction,
     UsesRule,
 )
 from .generator import GenerationStats, Generator
@@ -10,7 +10,7 @@ __all__ = [
     "Generator",
     "GenerationStats",
     "Constraint",
-    "RuleApplicationsOfMaxComplexity",
+    "RuleComplexityFraction",
     "NumberFraction",
     "UsesRule",
 ]

@@ -1,4 +1,4 @@
-from japanese_arrows.generator.constraints import Constraint, RuleApplicationsOfMaxComplexity
+from japanese_arrows.generator.constraints import Constraint, RuleComplexityFraction
 from japanese_arrows.generator.generator import Generator
 from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
@@ -27,8 +27,8 @@ def test_generator_simple() -> None:
 def test_generator_constraints() -> None:
     # Test that we can generate with constraints
     gen = Generator()
-    # Require at least some rule applications of max complexity (which is 1)
-    constraints: list[Constraint] = [RuleApplicationsOfMaxComplexity(min_fraction=0.01)]
+    # Require at least some rule applications of complexity 1
+    constraints: list[Constraint] = [RuleComplexityFraction(complexity=1, min_fraction=0.01)]
 
     # 4x4 with diagonals allowed
     puzzle, stats = gen.generate(4, 4, True, 1, constraints)
@@ -65,10 +65,8 @@ def test_generator_max_attempts() -> None:
 
     constraints: list[Constraint] = [NumberFraction(number=99, min_fraction=0.1)]
 
-    import pytest
-
-    with pytest.raises(RuntimeError, match="Could not generate puzzle within 5 attempts"):
-        gen.generate(3, 3, False, 1, constraints, max_attempts=5)
+    puzzle, stats = gen.generate(3, 3, False, 1, constraints, max_attempts=5)
+    assert puzzle is None
 
 
 def test_generate_many_max_attempts() -> None:
@@ -81,3 +79,16 @@ def test_generate_many_max_attempts() -> None:
         stats.puzzles_successfully_generated + stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution
         == 5
     )
+
+
+def test_generate_many_parallel() -> None:
+    gen = Generator()
+    # Test parallel generation of 4 puzzles
+    puzzles, stats = gen.generate_many(4, 3, 3, False, 1, [], n_jobs=2)
+
+    assert len(puzzles) == 4
+    assert stats.puzzles_successfully_generated == 4
+    for p in puzzles:
+        assert isinstance(p, Puzzle)
+        assert p.rows == 3
+        assert p.cols == 3

@@ -1,7 +1,8 @@
 import copy
 import random
 from dataclasses import dataclass
-from typing import List
+
+from joblib import Parallel, delayed, effective_n_jobs
 
 from japanese_arrows.generator.constraints import Constraint
 from japanese_arrows.models import Cell, Direction, Puzzle
@@ -25,20 +26,29 @@ class Generator:
         constraints: list[Constraint],
         max_attempts: int = 100,
         _stats: GenerationStats | None = None,
-    ) -> tuple[Puzzle, GenerationStats]:
+    ) -> tuple[Puzzle | None, GenerationStats]:
         solver = create_solver(max_complexity=max_complexity)
         stats = _stats if _stats is not None else GenerationStats()
-        start_attempts = stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution
 
         while True:
-            if stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution - start_attempts >= max_attempts:
-                raise RuntimeError(f"Could not generate puzzle within {max_attempts} attempts")
+            total_attempts = (
+                stats.puzzles_successfully_generated
+                + stats.puzzles_rejected_constraints
+                + stats.puzzles_rejected_no_solution
+            )
+            if total_attempts >= max_attempts and max_attempts != -1:
+                return None, stats
 
             # 1. Create random grid
             grid = self._create_random_grid(rows, cols, allow_diagonals)
 
             # current_puzzle holds the base arrows plus any manual inserts (givens)
             current_puzzle = Puzzle(rows=rows, cols=cols, grid=grid)
+
+            # 1.1 Pre-check constraints
+            if not all(c.pre_check(current_puzzle) for c in constraints):
+                stats.puzzles_rejected_constraints += 1
+                continue
 
             # 2. Loop until solved or failed
             while True:
@@ -97,45 +107,98 @@ class Generator:
 
     def generate_many(
         self,
-        count: int,
+        max_count: int,
         rows: int,
         cols: int,
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
         max_attempts: int = 1000,
+        n_jobs: int = 1,
     ) -> tuple[list[Puzzle], GenerationStats]:
+        # Divide total attempts evenly across the number of workers/jobs we want to use.
+        # If we want 1 puzzle and have 4 cores, we run 4 tasks to increase success probability.
+        n_tasks = max(max_count, effective_n_jobs(n_jobs)) if n_jobs != 1 else 1
+
+        # If we have only 1 job, we just run 1 task for the whole max_count.
+        # If we have many jobs, we try to split max_count comfortably.
+        # However, to keep it simple and fulfill "on the jobs", let's use n_jobs tasks
+        # unless max_count is larger.
+        n_workers = effective_n_jobs(n_jobs)
+        n_tasks = max(max_count, n_workers) if max_count == 1 else n_workers
+
+        attempts_per_task = max_attempts // n_tasks
+        target_puzzles_per_task = (max_count + n_tasks - 1) // n_tasks
+
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(self._generate_batch)(
+                target_count=target_puzzles_per_task,
+                max_attempts=attempts_per_task,
+                rows=rows,
+                cols=cols,
+                allow_diagonals=allow_diagonals,
+                max_complexity=max_complexity,
+                constraints=constraints,
+            )
+            for _ in range(n_tasks)
+        )
+
         puzzles: list[Puzzle] = []
         overall_stats = GenerationStats()
 
-        while len(puzzles) < count:
-            remaining_attempts = (
-                max_attempts
-                - overall_stats.puzzles_successfully_generated
-                - overall_stats.puzzles_rejected_constraints
-                - overall_stats.puzzles_rejected_no_solution
-            )
-            if remaining_attempts <= 0:
-                break
+        all_found_puzzles = []
+        for task_puzzles, task_stats in results:
+            all_found_puzzles.extend(task_puzzles)
+            overall_stats.puzzles_rejected_constraints += task_stats.puzzles_rejected_constraints
+            overall_stats.puzzles_rejected_no_solution += task_stats.puzzles_rejected_no_solution
 
-            try:
-                puzzle, _ = self.generate(
-                    rows,
-                    cols,
-                    allow_diagonals,
-                    max_complexity,
-                    constraints,
-                    max_attempts=remaining_attempts,
-                    _stats=overall_stats,
-                )
-                puzzles.append(puzzle)
-            except RuntimeError:
-                # Reached max_attempts across all generations
-                break
+        puzzles = all_found_puzzles[:max_count]
+        overall_stats.puzzles_successfully_generated = len(puzzles)
 
         return puzzles, overall_stats
 
-    def _create_random_grid(self, rows: int, cols: int, allow_diagonals: bool) -> List[List[Cell]]:
+    def _generate_batch(
+        self,
+        target_count: int,
+        max_attempts: int,
+        rows: int,
+        cols: int,
+        allow_diagonals: bool,
+        max_complexity: int,
+        constraints: list[Constraint],
+    ) -> tuple[list[Puzzle], GenerationStats]:
+        batch_puzzles: list[Puzzle] = []
+        batch_stats = GenerationStats()
+
+        while len(batch_puzzles) < target_count:
+            total_attempts = (
+                batch_stats.puzzles_successfully_generated
+                + batch_stats.puzzles_rejected_constraints
+                + batch_stats.puzzles_rejected_no_solution
+            )
+            remaining = max_attempts - total_attempts
+
+            if remaining <= 0:
+                break
+
+            puzzle, _ = self.generate(
+                rows=rows,
+                cols=cols,
+                allow_diagonals=allow_diagonals,
+                max_complexity=max_complexity,
+                constraints=constraints,
+                max_attempts=total_attempts + remaining,  # Total budget for this task
+                _stats=batch_stats,
+            )
+
+            if puzzle is not None:
+                batch_puzzles.append(puzzle)
+            else:
+                break
+
+        return batch_puzzles, batch_stats
+
+    def _create_random_grid(self, rows: int, cols: int, allow_diagonals: bool) -> list[list[Cell]]:
         grid = []
         directions = [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
         if allow_diagonals:
@@ -149,7 +212,7 @@ class Generator:
             grid.append(row)
         return grid
 
-    def _check_constraints(self, trace: SolverResult, constraints: List[Constraint]) -> bool:
+    def _check_constraints(self, trace: SolverResult, constraints: list[Constraint]) -> bool:
         for c in constraints:
             if not c.check(trace):
                 return False

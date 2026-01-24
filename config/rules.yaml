@@ -9,7 +9,7 @@
     - set(p, 0)
 - name: ARROW_POINTS_IN_BOUNDS
   condition: exists p (ahead(p) > 0)
-  kind: FO
+  kind: FO/
   complexity: 1
   conclusions:
     - exclude(p, 0)
