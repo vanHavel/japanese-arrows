@@ -45,6 +45,7 @@ class SolverStep:
     """Records a single step where a rule made progress."""
 
     rule_name: str
+    rule_complexity: int
     witness: dict[str, Any]
 
     conclusions_applied: list[Conclusion]
@@ -222,6 +223,7 @@ class Solver:
             if applied_conclusions:
                 step = SolverStep(
                     rule_name=rule.name,
+                    rule_complexity=rule.complexity,
                     witness=witness,
                     conclusions_applied=applied_conclusions,
                     puzzle_state=copy.deepcopy(puzzle),
@@ -336,6 +338,7 @@ class Solver:
                     if apply_res == ConclusionApplicationResult.PROGRESS:
                         step = SolverStep(
                             rule_name=rule.name,
+                            rule_complexity=rule.complexity,
                             witness=backtrack_witness,
                             conclusions_applied=[conclusion],
                             contradiction_trace=[f"Assuming {r},{c} is {val}:"] + trace,
