@@ -18,6 +18,8 @@ class GenerationStats:
 
 
 class Generator:
+    OUTWARD_ARROWS_THRESHOLD = 0.1
+
     def generate(
         self,
         rows: int,
@@ -44,6 +46,8 @@ class Generator:
             grid = self._create_random_grid(rows, cols, allow_diagonals)
 
             current_puzzle = Puzzle(rows=rows, cols=cols, grid=grid)
+
+            self._flip_outward_arrows(current_puzzle)
 
             if prefilled_cells_count > 0:
                 self._prefill_cells(current_puzzle, prefilled_cells_count)
@@ -278,3 +282,37 @@ class Generator:
             upper_bound = min(path_len, max_dim - 1)
             val = random.randint(0, upper_bound)
             puzzle.grid[r][c].number = val
+
+    def _flip_outward_arrows(self, puzzle: Puzzle) -> None:
+        rows = puzzle.rows
+        cols = puzzle.cols
+        total_cells = rows * cols
+        outward_arrows = []
+
+        for r in range(rows):
+            for c in range(cols):
+                cell = puzzle.grid[r][c]
+                dr, dc = cell.direction.delta
+                nr, nc = r + dr, c + dc
+                if not (0 <= nr < rows and 0 <= nc < cols):
+                    outward_arrows.append((r, c))
+
+        target_count = int(total_cells * self.OUTWARD_ARROWS_THRESHOLD)
+        num_to_flip = len(outward_arrows) - target_count
+
+        if num_to_flip > 0:
+            opposites = {
+                Direction.NORTH: Direction.SOUTH,
+                Direction.SOUTH: Direction.NORTH,
+                Direction.EAST: Direction.WEST,
+                Direction.WEST: Direction.EAST,
+                Direction.NORTH_EAST: Direction.SOUTH_WEST,
+                Direction.SOUTH_WEST: Direction.NORTH_EAST,
+                Direction.SOUTH_EAST: Direction.NORTH_WEST,
+                Direction.NORTH_WEST: Direction.SOUTH_EAST,
+            }
+            to_flip = random.sample(outward_arrows, num_to_flip)
+            for r, c in to_flip:
+                cell = puzzle.grid[r][c]
+                if cell.direction in opposites:
+                    cell.direction = opposites[cell.direction]

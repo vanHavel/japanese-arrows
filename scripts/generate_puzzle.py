@@ -3,7 +3,6 @@ from collections import defaultdict
 from japanese_arrows.generator import (
     FollowingArrowsFraction,
     Generator,
-    NumberFraction,
     PrefilledCellsFraction,
 )
 from japanese_arrows.solver import SolverStatus, create_solver
@@ -16,11 +15,10 @@ def main() -> None:
     rows = 6
     cols = 6
     allow_diagonals = False
-    max_complexity = 3
+    max_complexity = 5
     prefilled_cells_count = 0
 
     constraints = [
-        NumberFraction(number=0, max_fraction=0.15),
         FollowingArrowsFraction(min_fraction=0.1),
         PrefilledCellsFraction(max_fraction=0.3),
     ]
@@ -36,7 +34,7 @@ def main() -> None:
         max_complexity=max_complexity,
         constraints=constraints,
         prefilled_cells_count=prefilled_cells_count,
-        max_attempts=100,
+        max_attempts=8,
     )
 
     puzzle = puzzles[0] if puzzles else None
