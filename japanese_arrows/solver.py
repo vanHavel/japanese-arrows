@@ -11,6 +11,7 @@ from japanese_arrows.models import Direction, Puzzle
 from japanese_arrows.optimizer import optimize
 from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
+    BacktrackRule,
     Calculation,
     Conclusion,
     ConclusionConstant,
@@ -84,7 +85,9 @@ class Solver:
                 current_complexity += 1
                 continue
 
-            result = self._apply_rules_at_complexity(puzzle, applicable_rules, universe, steps, rule_application_count)
+            result = self._apply_rules_at_complexity(
+                puzzle, applicable_rules, universe, steps, rule_application_count, path_cache
+            )
 
             if result.status == SolverStatus.NO_SOLUTION:
                 return SolverResult(
@@ -115,6 +118,8 @@ class Solver:
         universe: Universe,
         steps: list[SolverStep],
         rule_application_count: Counter[str],
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+        mock: bool = False,
     ) -> SolverResult:
         num_rules = len(applicable_rules)
         rule_idx = 0
@@ -124,7 +129,7 @@ class Solver:
         while consecutive_no_change < num_rules:
             rule = applicable_rules[rule_idx]
 
-            result = self._try_apply_rule(puzzle, rule, universe)
+            result = self._try_apply_rule(puzzle, rule, universe, path_cache, mock)
 
             if result.status == SolverStatus.NO_SOLUTION:
                 return SolverResult(
@@ -135,7 +140,8 @@ class Solver:
                     steps=steps,
                 )
 
-            if result.steps:
+            # Only reset progress counter if we actually modified the puzzle (not in mock mode)
+            if result.steps and not mock:
                 consecutive_no_change = 0
                 max_complexity_used = max(max_complexity_used, rule.complexity)
                 rule_application_count[rule.name] += len(result.steps)
@@ -153,9 +159,28 @@ class Solver:
             steps=steps,
         )
 
-    def _try_apply_rule(self, puzzle: Puzzle, rule: Rule, universe: Universe) -> SolverResult:
+    def _try_apply_rule(
+        self,
+        puzzle: Puzzle,
+        rule: Rule,
+        universe: Universe,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+        mock: bool = False,
+    ) -> SolverResult:
+        if isinstance(rule, BacktrackRule):
+            if mock:
+                # Avoid infinite recursion: don't apply backtrack rules inside a mock check
+                return SolverResult(
+                    status=SolverStatus.UNDERCONSTRAINED,
+                    puzzle=puzzle,
+                    max_complexity_used=0,
+                    rule_application_count=Counter(),
+                    steps=[],
+                )
+            return self._apply_backtrack_rule(puzzle, rule, universe, path_cache)
+
         if not isinstance(rule, FORule):
-            # Backtrack rules (and others) are not yet implemented for application
+            # Other rule types not implemented
             return SolverResult(
                 status=SolverStatus.UNDERCONSTRAINED,
                 puzzle=puzzle,
@@ -168,7 +193,7 @@ class Solver:
             applied_conclusions: list[Conclusion] = []
 
             for conclusion in rule.conclusions:
-                result = self._apply_conclusion(puzzle, conclusion, witness, universe)
+                result = self._apply_conclusion(puzzle, conclusion, witness, universe, mock)
 
                 if result == ConclusionApplicationResult.CONTRADICTION:
                     return SolverResult(
@@ -194,6 +219,150 @@ class Solver:
                     rule_application_count=Counter(),
                     steps=[step],
                 )
+
+        return SolverResult(
+            status=SolverStatus.UNDERCONSTRAINED,
+            puzzle=puzzle,
+            max_complexity_used=0,
+            rule_application_count=Counter(),
+            steps=[],
+        )
+
+    def _check_consistency(self, puzzle: Puzzle, path_cache: dict[tuple[int, int], list[tuple[int, int]]]) -> bool:
+        """
+        Checks if the current partial state is consistent using precomputed paths.
+        Returns False if a contradiction is detected (e.g. empty candidates,
+        filled number conflicts with geometry).
+        """
+        for r in range(puzzle.rows):
+            for c in range(puzzle.cols):
+                cell = puzzle.grid[r][c]
+
+                # Check 1: Empty candidates (if number is None)
+                if cell.number is None:
+                    if not cell.candidates:
+                        return False
+
+                # Check 2: Geometric consistency (if number is filled)
+                if cell.number is not None:
+                    seen_values = set()
+
+                    # Use cached path
+                    path = path_cache.get((r, c), [])
+
+                    for pr, pc in path:
+                        target = puzzle.grid[pr][pc]
+                        if target.number is not None:
+                            seen_values.add(target.number)
+
+                    if len(seen_values) > cell.number:
+                        return False
+
+        return True
+
+    def _apply_backtrack_rule(
+        self,
+        puzzle: Puzzle,
+        rule: BacktrackRule,
+        universe: Universe,
+        path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+    ) -> SolverResult:
+        # path_cache passed from solve method via arguments
+
+        # Find all cells that are not filled
+        candidates_map: list[tuple[int, int, set[int]]] = []
+        for r in range(puzzle.rows):
+            for c in range(puzzle.cols):
+                cell = puzzle.grid[r][c]
+                if cell.number is None:
+                    cands = cell.candidates if cell.candidates is not None else set()
+                    if cands:
+                        candidates_map.append((r, c, cands))
+
+        # Sort by number of candidates (heuristics: fail fast on small sets)
+        candidates_map.sort(key=lambda x: len(x[2]))
+
+        # We need rules up to max_rule_complexity
+        hypothesis_rules = [r for r in self.rules if r.complexity <= rule.max_rule_complexity]
+
+        original_grid = puzzle.grid  # Reference to original grid lists
+
+        for r, c, cands in candidates_map:
+            # We must iterate over a copy of cands
+            for val in list(cands):
+                # Hypothesis: cell(r, c) = val
+
+                try:
+                    # Swap grid with a copy for hypothesis testing
+                    working_grid = copy.deepcopy(original_grid)
+                    puzzle.grid = working_grid
+
+                    # Apply hypothesis
+                    cell = puzzle.grid[r][c]
+                    cell.number = val
+                    cell.candidates = {val}
+
+                    contradiction_found = False
+
+                    # Run rules with mock=False (Allow chaining deductions on the working grid)
+                    # We iterate complexities 1..max
+                    for complexity in range(1, rule.max_rule_complexity + 1):
+                        rules_at_c = [rule for rule in hypothesis_rules if rule.complexity <= complexity]
+                        if not rules_at_c:
+                            continue
+
+                        mock_steps: list[SolverStep] = []
+                        mock_counts: Counter[str] = Counter()
+
+                        res = self._apply_rules_at_complexity(
+                            puzzle, rules_at_c, universe, mock_steps, mock_counts, path_cache, mock=False
+                        )
+
+                        if res.status == SolverStatus.NO_SOLUTION:
+                            contradiction_found = True
+                            break
+
+                    # Additional Check: Is resulting state consistent?
+                    if not contradiction_found:
+                        if not self._check_consistency(puzzle, path_cache):
+                            contradiction_found = True
+
+                finally:
+                    # Restore original grid reference
+                    puzzle.grid = original_grid
+
+                if contradiction_found:
+                    # We found a contradiction for hypothesis cell=val.
+                    # Therefore cell != val.
+                    # Apply deduction to REAL puzzle (which has original_grid restored).
+
+                    backtrack_witness = {"p": (r, c)}
+                    conclusion = ExcludeVal(
+                        position=ConclusionVariable("p"), operator="=", value=ConclusionConstant(val)
+                    )
+
+                    apply_res = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe, mock=False)
+
+                    if apply_res == ConclusionApplicationResult.CONTRADICTION:
+                        return SolverResult(
+                            status=SolverStatus.NO_SOLUTION,
+                            puzzle=puzzle,
+                            max_complexity_used=rule.complexity,
+                            rule_application_count=Counter({rule.name: 1}),
+                            steps=[],
+                        )
+
+                    if apply_res == ConclusionApplicationResult.PROGRESS:
+                        step = SolverStep(
+                            rule_name=rule.name, witness=backtrack_witness, conclusions_applied=[conclusion]
+                        )
+                        return SolverResult(
+                            status=SolverStatus.UNDERCONSTRAINED,
+                            puzzle=puzzle,
+                            max_complexity_used=rule.complexity,
+                            rule_application_count=Counter({rule.name: 1}),
+                            steps=[step],
+                        )
 
         return SolverResult(
             status=SolverStatus.UNDERCONSTRAINED,
