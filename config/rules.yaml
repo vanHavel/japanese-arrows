@@ -25,12 +25,6 @@
   complexity: 1
   conclusions:
     - exclude(p, <i)
-- name: ONE
-  condition: exists p,q,r,i (val(p) = 1 ^ points_at(p, q) ^ val(q) = nil ^ points_at(p, r) ^ val(r) = nil ^ q != r ^candidate(r, i) ^ !candidate(q, i))
-  kind: FO
-  complexity: 2
-  conclusions:
-    - exclude(r, i)
 - name: SEEN_AND_FREE
   condition: exists p,i,j,k (sees_distinct(p) = i ^ ahead_free(p) = j ^ k = i + j)
   kind: FO
@@ -44,7 +38,7 @@
   conclusions:
     - only(p, [i, i+1])
 - name: NEXT_ARROW_SAME_DIRECTION_VAL_SEEN
-  condition: exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i ^ exists r (points_at(q, r) ^ val(r) = i))
+  condition: exists p,q,i (candidate(p, i) ^ next(p) = q ^ dir(p) = dir(q) ^ val(q) = i ^ exists r (points_at(q, r) ^ val(r) = i))
   kind: FO
   complexity: 2
   conclusions:
@@ -110,7 +104,7 @@
   conclusions:
     - exclude(p, i)
 - name: ALL_DISTINCT
-  condition: exists p,q,r,i (sees_distinct(p) + ahead_free(p) = val(p) ^ points_at(p, q) ^ points_at(p, r) ^ q != r ^ val(q) = i ^ val(r) = nil)
+  condition: exists p,q,r,i (sees_distinct(p) + ahead_free(p) = val(p) ^ points_at(p, q) ^ val(q) = i ^ points_at(p, r) ^ q != r ^ val(r) = nil ^ candidate(r, i))
   kind: FO
   complexity: 3
   conclusions:
@@ -128,13 +122,13 @@
   conclusions:
     - set(q, i)
 - name: AHEAD_ARROW_SAME_DIRECTION_FREE
-  condition: exists p,q,i,j,k,l (points_at(p, q) ^ dir(p) = dir(q) ^ val(q) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i + j + k)
+  condition: exists p,q,i,j,k,l (max_candidate(p) > l ^points_at(p, q) ^ dir(p) = dir(q) ^ val(q) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i + j + k)
   kind: FO
   complexity: 3
   conclusions:
     - exclude(p, >l)
 - name: BEFORE_ARROW_SAME_DIRECTION_FREE
-  condition: exists p,q,i,j,k,l (points_at(p, q) ^ dir(p) = dir(q) ^ val(p) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i - j - k - 1)
+  condition: exists p,q,i,j,k,l (min_candidate(q) < l ^ points_at(p, q) ^ dir(p) = dir(q) ^ val(p) = i ^ between_free(p, q) = j ^ sees_distinct(p) - sees_distinct(q) = k ^ l = i - j - k - 1)
   kind: FO
   complexity: 3
   conclusions:
@@ -152,7 +146,7 @@
   conclusions:
     - exclude(q, i)
 - name: OPPOSITES_LOWER_BOUND
-  condition: exists p,q,i,j,k (points_at(p, q) ^ points_at(q, p) ^ val(q) = i ^ behind(p) = j ^ k = i - j - 1)
+  condition: exists p,q,i,j,k (min_candidate(p) < k ^ points_at(p, q) ^ points_at(q, p) ^ val(q) = i ^ behind(p) = j ^ k = i - j - 1)
   kind: FO
   complexity: 3
   conclusions:

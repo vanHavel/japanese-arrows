@@ -4,7 +4,7 @@ from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
 
 # Configuration
-PUZZLE_PATH = "puzzles/zeiger_2.txt"
+PUZZLE_PATH = "puzzles/pi.txt"
 
 
 def main() -> None:
@@ -51,6 +51,19 @@ def main() -> None:
     else:
         print("Puzzle NOT solved fully.")
         print(result.puzzle.to_string_with_candidates())
+
+    print("\n--- Rule Execution Statistics ---")
+    print(f"{'Rule Name':<30} | {'Count':<6} | {'Time (s)':<10}")
+    print("-" * 52)
+    total_time = 0.0
+    # Sort by time spent
+    sorted_rules = sorted(result.rule_execution_time.items(), key=lambda x: x[1], reverse=True)
+    for name, duration in sorted_rules:
+        count = result.rule_application_count.get(name, 0)
+        print(f"{name:<30} | {count:<6} | {duration:<10.4f}")
+        total_time += duration
+    print("-" * 52)
+    print(f"{'Total':<30} | {'':<6} | {total_time:<10.4f}")
 
 
 if __name__ == "__main__":

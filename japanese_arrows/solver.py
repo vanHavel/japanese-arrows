@@ -1,4 +1,5 @@
 import copy
+import time
 from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
@@ -59,6 +60,7 @@ class SolverResult:
     puzzle: Puzzle
     max_complexity_used: int
     rule_application_count: Counter[str]
+    rule_execution_time: dict[str, float] = field(default_factory=dict)
     steps: list[SolverStep] = field(default_factory=list)
 
 
@@ -76,6 +78,7 @@ class Solver:
         steps: list[SolverStep] = []
         max_complexity_used = 0
         rule_application_count: Counter[str] = Counter()
+        rule_execution_time: dict[str, float] = {}
 
         universe = self._create_universe(puzzle, path_cache)
 
@@ -89,7 +92,13 @@ class Solver:
                 continue
 
             result = self._apply_rules_at_complexity(
-                puzzle, applicable_rules, universe, steps, rule_application_count, path_cache
+                puzzle,
+                applicable_rules,
+                universe,
+                steps,
+                rule_application_count,
+                rule_execution_time,
+                path_cache,
             )
 
             if result.status == SolverStatus.NO_SOLUTION:
@@ -98,6 +107,7 @@ class Solver:
                     puzzle=puzzle,
                     max_complexity_used=max(max_complexity_used, result.max_complexity_used),
                     rule_application_count=rule_application_count,
+                    rule_execution_time=rule_execution_time,
                     steps=steps,
                 )
 
@@ -111,6 +121,7 @@ class Solver:
             puzzle=puzzle,
             max_complexity_used=max_complexity_used,
             rule_application_count=rule_application_count,
+            rule_execution_time=rule_execution_time,
             steps=steps,
         )
 
@@ -121,6 +132,7 @@ class Solver:
         universe: Universe,
         steps: list[SolverStep],
         rule_application_count: Counter[str],
+        rule_execution_time: dict[str, float],
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
         max_steps: int | None = None,
     ) -> SolverResult:
@@ -136,7 +148,10 @@ class Solver:
 
             rule = applicable_rules[rule_idx]
 
+            start_time = time.perf_counter()
             result = self._try_apply_rule(puzzle, rule, universe, path_cache)
+            duration = time.perf_counter() - start_time
+            rule_execution_time[rule.name] = rule_execution_time.get(rule.name, 0.0) + duration
 
             if result.status == SolverStatus.NO_SOLUTION:
                 return SolverResult(
@@ -144,6 +159,7 @@ class Solver:
                     puzzle=puzzle,
                     max_complexity_used=max_complexity_used,
                     rule_application_count=rule_application_count,
+                    rule_execution_time=rule_execution_time,
                     steps=steps,
                 )
 
@@ -163,6 +179,7 @@ class Solver:
             puzzle=puzzle,
             max_complexity_used=max_complexity_used,
             rule_application_count=rule_application_count,
+            rule_execution_time=rule_execution_time,
             steps=steps,
         )
 
