@@ -1,3 +1,4 @@
+import copy
 import random
 from dataclasses import dataclass, field
 
@@ -61,6 +62,9 @@ class Generator:
 
             path_cache = compute_all_paths(current_puzzle)
             reuse_candidates = False
+            base_puzzle = copy.deepcopy(current_puzzle)
+            modifications = 0
+            max_modifications = 10
 
             while True:
                 trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
@@ -107,6 +111,33 @@ class Generator:
                     # Continue inner loop
 
                 else:
+                    if modifications < max_modifications and trace.contradiction_location is not None:
+                        # Contradiction found, try to rotate the arrow at the contradiction
+                        r, c = trace.contradiction_location
+
+                        # Modify the base puzzle (preserving prefilled numbers but resetting guesses)
+                        current_dir = base_puzzle.grid[r][c].direction
+
+                        allowed_dirs = [Direction.NORTH, Direction.EAST, Direction.SOUTH, Direction.WEST]
+                        if allow_diagonals:
+                            allowed_dirs.extend(
+                                [Direction.NORTH_EAST, Direction.SOUTH_EAST, Direction.SOUTH_WEST, Direction.NORTH_WEST]
+                            )
+
+                        current_idx = allowed_dirs.index(current_dir) if current_dir in allowed_dirs else 0
+                        new_dir = allowed_dirs[(current_idx + 1) % len(allowed_dirs)]
+
+                        base_puzzle.grid[r][c].direction = new_dir
+
+                        # Reset current_puzzle to base_puzzle (clears number guesses)
+                        current_puzzle = copy.deepcopy(base_puzzle)
+
+                        # Recompute paths since arrows changed
+                        path_cache = compute_all_paths(current_puzzle)
+                        reuse_candidates = False
+                        modifications += 1
+                        continue
+
                     stats.puzzles_rejected_no_solution += 1
                     break
 

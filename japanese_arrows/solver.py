@@ -64,6 +64,7 @@ class SolverResult:
     rule_execution_time: dict[str, float] = field(default_factory=dict)
     steps: list[SolverStep] = field(default_factory=list)
     initial_puzzle: Puzzle | None = None
+    contradiction_location: tuple[int, int] | None = None
 
 
 class Solver:
@@ -121,6 +122,7 @@ class Solver:
                     rule_execution_time=rule_execution_time,
                     steps=steps,
                     initial_puzzle=initial_puzzle_copy,
+                    contradiction_location=result.contradiction_location,
                 )
 
             max_complexity_used = max(max_complexity_used, result.max_complexity_used)
@@ -174,6 +176,7 @@ class Solver:
                     rule_application_count=rule_application_count,
                     rule_execution_time=rule_execution_time,
                     steps=steps,
+                    contradiction_location=result.contradiction_location,
                 )
 
             if result.steps:
@@ -219,7 +222,7 @@ class Solver:
             applied_conclusions: list[Conclusion] = []
 
             for conclusion in rule.conclusions:
-                result = self._apply_conclusion(puzzle, conclusion, witness, universe)
+                result, loc = self._apply_conclusion(puzzle, conclusion, witness, universe)
 
                 if result == ConclusionApplicationResult.CONTRADICTION:
                     return SolverResult(
@@ -228,6 +231,7 @@ class Solver:
                         max_complexity_used=0,
                         rule_application_count=Counter(),
                         steps=[],
+                        contradiction_location=loc,
                     )
                 elif result == ConclusionApplicationResult.PROGRESS:
                     applied_conclusions.append(conclusion)
@@ -258,10 +262,10 @@ class Solver:
 
     def _check_consistency(
         self, puzzle: Puzzle, path_cache: dict[tuple[int, int], list[tuple[int, int]]]
-    ) -> tuple[bool, str | None]:
+    ) -> tuple[bool, str | None, tuple[int, int] | None]:
         """
         Checks if the current partial state is consistent using precomputed paths.
-        Returns (False, Reason) if a contradiction is detected.
+        Returns (False, Reason, Location) if a contradiction is detected.
         """
         for r in range(puzzle.rows):
             for c in range(puzzle.cols):
@@ -269,7 +273,7 @@ class Solver:
 
                 if cell.number is None:
                     if not cell.candidates:
-                        return False, f"Cell ({r},{c}) has no candidates left"
+                        return False, f"Cell ({r},{c}) has no candidates left", (r, c)
 
                 if cell.number is not None:
                     seen_values = set()
@@ -282,9 +286,13 @@ class Solver:
                             seen_values.add(target.number)
 
                     if len(seen_values) > cell.number:
-                        return False, f"Cell ({r},{c}) sees {len(seen_values)} distinct values (> {cell.number})"
+                        return (
+                            False,
+                            f"Cell ({r},{c}) sees {len(seen_values)} distinct values (> {cell.number})",
+                            (r, c),
+                        )
 
-        return True, None
+        return True, None, None
 
     def _apply_backtrack_rule(
         self,
@@ -336,7 +344,7 @@ class Solver:
                         position=ConclusionVariable("p"), operator="=", value=ConclusionConstant(val)
                     )
 
-                    apply_res = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe)
+                    apply_res, loc = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe)
 
                     if apply_res == ConclusionApplicationResult.CONTRADICTION:
                         return SolverResult(
@@ -345,6 +353,7 @@ class Solver:
                             max_complexity_used=rule.complexity,
                             rule_application_count=Counter({rule.name: 1}),
                             steps=[],
+                            contradiction_location=loc,
                         )
 
                     if apply_res == ConclusionApplicationResult.PROGRESS:
@@ -380,7 +389,7 @@ class Solver:
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
         budget: int,
     ) -> list[str] | None:
-        valid, reason = self._check_consistency(puzzle, path_cache)
+        valid, reason, loc = self._check_consistency(puzzle, path_cache)
         if not valid:
             return [f"Inconsistent state: {reason}"]
 
@@ -454,23 +463,23 @@ class Solver:
         conclusion: Conclusion,
         witness: dict[str, Any],
         universe: Universe,
-    ) -> ConclusionApplicationResult:
+    ) -> tuple[ConclusionApplicationResult, tuple[int, int] | None]:
         p_val = self._eval_conclusion_term(conclusion.position, witness)
 
         if p_val == "OOB":
-            return ConclusionApplicationResult.NO_PROGRESS
+            return ConclusionApplicationResult.NO_PROGRESS, None
 
         r, c = p_val
         cell = puzzle.grid[r][c]
 
         if cell.number is not None and cell.candidates is not None and not cell.candidates:
-            return ConclusionApplicationResult.NO_PROGRESS
+            return ConclusionApplicationResult.NO_PROGRESS, None
 
         current_candidates = cell.candidates
         if cell.number is not None:
             current_candidates = {cell.number}
         elif current_candidates is None:
-            return ConclusionApplicationResult.NO_PROGRESS
+            return ConclusionApplicationResult.NO_PROGRESS, None
 
         new_candidates = current_candidates.copy()
 
@@ -479,7 +488,7 @@ class Solver:
             if not isinstance(val, int):
                 cell.candidates = set()
                 cell.number = None
-                return ConclusionApplicationResult.CONTRADICTION
+                return ConclusionApplicationResult.CONTRADICTION, (r, c)
             new_candidates.intersection_update({val})
 
         elif isinstance(conclusion, ExcludeVal):
@@ -509,15 +518,15 @@ class Solver:
         if new_candidates != current_candidates:
             if not new_candidates:
                 cell.candidates = set()
-                return ConclusionApplicationResult.CONTRADICTION
+                return ConclusionApplicationResult.CONTRADICTION, (r, c)
 
             cell.candidates = new_candidates
             if len(new_candidates) == 1:
                 cell.number = next(iter(new_candidates))
 
-            return ConclusionApplicationResult.PROGRESS
+            return ConclusionApplicationResult.PROGRESS, None
 
-        return ConclusionApplicationResult.NO_PROGRESS
+        return ConclusionApplicationResult.NO_PROGRESS, None
 
     def _apply_conclusion_with_undo(
         self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any]

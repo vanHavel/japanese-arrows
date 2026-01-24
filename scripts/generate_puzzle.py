@@ -5,7 +5,6 @@ from japanese_arrows.generator import (
     Generator,
     NumberFraction,
     PrefilledCellsFraction,
-    UsesRule,
 )
 from japanese_arrows.solver import SolverStatus, create_solver
 
@@ -14,30 +13,33 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 5
-    cols = 5
+    rows = 6
+    cols = 6
     allow_diagonals = False
-    max_complexity = 5
+    max_complexity = 3
     prefilled_cells_count = 0
 
     constraints = [
-        UsesRule(rule_name="BACKTRACK_SIMPLE", min_count=2),
-        NumberFraction(number=0, max_fraction=0.2),
+        NumberFraction(number=0, max_fraction=0.15),
         FollowingArrowsFraction(min_fraction=0.1),
         PrefilledCellsFraction(max_fraction=0.3),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")
 
-    puzzle, stats = gen.generate(
+    puzzles, stats = gen.generate_many(
+        max_count=8,
+        n_jobs=8,
         rows=rows,
         cols=cols,
         allow_diagonals=allow_diagonals,
         max_complexity=max_complexity,
         constraints=constraints,
         prefilled_cells_count=prefilled_cells_count,
-        max_attempts=500,
+        max_attempts=100,
     )
+
+    puzzle = puzzles[0] if puzzles else None
 
     if not puzzle:
         print("\nCould not generate puzzle within max attempts")
