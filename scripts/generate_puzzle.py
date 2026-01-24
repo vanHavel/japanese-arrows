@@ -1,6 +1,6 @@
 from collections import defaultdict
 
-from japanese_arrows.generator import Generator, NumberFraction, RuleComplexityFraction
+from japanese_arrows.generator import FollowingArrowsFraction, Generator, NumberFraction, RuleComplexityFraction
 from japanese_arrows.solver import SolverStatus, create_solver
 
 
@@ -11,11 +11,12 @@ def main() -> None:
     rows = 5
     cols = 5
     allow_diagonals = False
-    max_complexity = 5
+    max_complexity = 6
 
     constraints = [
-        RuleComplexityFraction(complexity=5, min_fraction=0.01),
+        RuleComplexityFraction(complexity=max_complexity, min_fraction=0.01, max_fraction=0.2),
         NumberFraction(number=0, max_fraction=0.2),
+        FollowingArrowsFraction(min_fraction=0.1),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")

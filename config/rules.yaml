@@ -157,6 +157,12 @@
   complexity: 3
   conclusions:
     - exclude(p, <k)
+- name: FREE_AHEAD_DISTINCT
+  condition: exists p,j (val(p) = nil ^ j = sees_distinct(p) + ahead_free(p) ^ forall s,k ((points_at(p, s) ^ val(s) = nil ^ candidate(s, k)) -> !sees_value(p, k)) ^ forall q,r ((points_at(p, q) ^ val(q) = nil ^ points_at(q, r) ^ val(r) = nil) -> forall i ((candidate(q, i) -> !candidate(r, i)) ^ (candidate(r, i) -> !candidate(q, i)))))
+  kind: FO
+  complexity: 4
+  conclusions:
+    - set(p, j)
 - name: OPPOSITES_LOWER_BOUND_CANDIDATES
   condition: exists p,q,i,j,k (points_at(p, q) ^ points_at(q, p) ^ min_candidate(q) = i ^ behind(p) = j ^ k = i - j - 1)
   kind: FO
