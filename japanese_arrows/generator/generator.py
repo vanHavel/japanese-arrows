@@ -1,7 +1,7 @@
 import copy
 import random
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List
 
 from japanese_arrows.generator.constraints import Constraint
 from japanese_arrows.models import Cell, Direction, Puzzle
@@ -10,21 +10,32 @@ from japanese_arrows.solver import SolverResult, SolverStatus, create_solver
 
 @dataclass
 class GenerationStats:
-    total_puzzles_created: int = 0
+    puzzles_successfully_generated: int = 0
     puzzles_rejected_constraints: int = 0
+    puzzles_rejected_no_solution: int = 0
 
 
 class Generator:
     def generate(
-        self, rows: int, cols: int, allow_diagonals: bool, max_complexity: int, constraints: List[Constraint]
-    ) -> Tuple[Puzzle, GenerationStats]:
+        self,
+        rows: int,
+        cols: int,
+        allow_diagonals: bool,
+        max_complexity: int,
+        constraints: list[Constraint],
+        max_attempts: int = 100,
+        _stats: GenerationStats | None = None,
+    ) -> tuple[Puzzle, GenerationStats]:
         solver = create_solver(max_complexity=max_complexity)
-        stats = GenerationStats()
+        stats = _stats if _stats is not None else GenerationStats()
+        start_attempts = stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution
 
         while True:
+            if stats.puzzles_rejected_constraints + stats.puzzles_rejected_no_solution - start_attempts >= max_attempts:
+                raise RuntimeError(f"Could not generate puzzle within {max_attempts} attempts")
+
             # 1. Create random grid
             grid = self._create_random_grid(rows, cols, allow_diagonals)
-            stats.total_puzzles_created += 1
 
             # current_puzzle holds the base arrows plus any manual inserts (givens)
             current_puzzle = Puzzle(rows=rows, cols=cols, grid=grid)
@@ -39,6 +50,7 @@ class Generator:
                 if trace.status == SolverStatus.SOLVED:
                     # Step 3: verify that the grid lies within the desired constraints
                     if self._check_constraints(trace, constraints):
+                        stats.puzzles_successfully_generated += 1
                         return current_puzzle, stats
                     else:
                         # Step 4: Constraints failed, start over (outer loop)
@@ -58,6 +70,7 @@ class Generator:
                     if not empty_cells:
                         # This shouldn't happen if status is UNDERCONSTRAINED,
                         # but if it does, it's a weird state. Restart.
+                        stats.puzzles_rejected_no_solution += 1
                         break
 
                     # Choose random unfilled cell
@@ -66,6 +79,7 @@ class Generator:
 
                     if not cell.candidates:
                         # No candidates - effectively a dead end / NO_SOLUTION
+                        stats.puzzles_rejected_no_solution += 1
                         break
 
                     # Fill with one of its candidates
@@ -78,6 +92,7 @@ class Generator:
 
                 else:  # NO_SOLUTION
                     # Contradiction. Start over.
+                    stats.puzzles_rejected_no_solution += 1
                     break
 
     def generate_many(
@@ -87,16 +102,36 @@ class Generator:
         cols: int,
         allow_diagonals: bool,
         max_complexity: int,
-        constraints: List[Constraint],
-    ) -> Tuple[List[Puzzle], GenerationStats]:
-        puzzles = []
+        constraints: list[Constraint],
+        max_attempts: int = 1000,
+    ) -> tuple[list[Puzzle], GenerationStats]:
+        puzzles: list[Puzzle] = []
         overall_stats = GenerationStats()
 
-        for _ in range(count):
-            puzzle, stats = self.generate(rows, cols, allow_diagonals, max_complexity, constraints)
-            puzzles.append(puzzle)
-            overall_stats.total_puzzles_created += stats.total_puzzles_created
-            overall_stats.puzzles_rejected_constraints += stats.puzzles_rejected_constraints
+        while len(puzzles) < count:
+            remaining_attempts = (
+                max_attempts
+                - overall_stats.puzzles_successfully_generated
+                - overall_stats.puzzles_rejected_constraints
+                - overall_stats.puzzles_rejected_no_solution
+            )
+            if remaining_attempts <= 0:
+                break
+
+            try:
+                puzzle, _ = self.generate(
+                    rows,
+                    cols,
+                    allow_diagonals,
+                    max_complexity,
+                    constraints,
+                    max_attempts=remaining_attempts,
+                    _stats=overall_stats,
+                )
+                puzzles.append(puzzle)
+            except RuntimeError:
+                # Reached max_attempts across all generations
+                break
 
         return puzzles, overall_stats
 
