@@ -14,8 +14,8 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 8
-    cols = 8
+    rows = 7
+    cols = 7
     allow_diagonals = False
     max_complexity = 3
 
@@ -34,6 +34,7 @@ def main() -> None:
         allow_diagonals=allow_diagonals,
         max_complexity=max_complexity,
         constraints=constraints,
+        prefilled_cells_count=10,
         max_attempts=100,
     )
 

@@ -23,6 +23,7 @@ class Generator:
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
+        prefilled_cells_count: int = 0,
         max_attempts: int = 100,
         _stats: GenerationStats | None = None,
     ) -> tuple[Puzzle | None, GenerationStats]:
@@ -38,42 +39,32 @@ class Generator:
             if total_attempts >= max_attempts and max_attempts != -1:
                 return None, stats
 
-            # 1. Create random grid
             grid = self._create_random_grid(rows, cols, allow_diagonals)
 
-            # current_puzzle holds the base arrows plus any manual inserts (givens)
             current_puzzle = Puzzle(rows=rows, cols=cols, grid=grid)
 
-            # 1.1 Pre-check constraints
+            if prefilled_cells_count > 0:
+                self._prefill_cells(current_puzzle, prefilled_cells_count)
+
             if not all(c.pre_check(current_puzzle) for c in constraints):
                 stats.puzzles_rejected_constraints += 1
                 continue
 
-            # Compute path cache once
             path_cache = compute_all_paths(current_puzzle)
             reuse_candidates = False
 
-            # 2. Loop until solved or failed
             while True:
-                # 2.1 Run the solver with max_complexity
-                # We reuse candidates if we are continuing from a partial solution
                 trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
 
                 if trace.status == SolverStatus.SOLVED:
-                    # Step 3: verify that the grid lies within the desired constraints
                     if self._check_constraints(trace, constraints):
                         stats.puzzles_successfully_generated += 1
                         return current_puzzle, stats
                     else:
-                        # Step 4: Constraints failed, start over (outer loop)
                         stats.puzzles_rejected_constraints += 1
                         break
 
                 elif trace.status == SolverStatus.UNDERCONSTRAINED:
-                    # Step 2.3: Choose random unfilled cell from partial solution
-                    # CRITICAL OPTIMIZATION: Use the puzzle state returned by the solver
-                    # which contains candidate reductions.
-                    # We continue working on *this* object in the next iteration.
                     current_puzzle = trace.puzzle
 
                     empty_cells = []
@@ -83,34 +74,26 @@ class Generator:
                                 empty_cells.append((r, c))
 
                     if not empty_cells:
-                        # This shouldn't happen if status is UNDERCONSTRAINED
                         stats.puzzles_rejected_no_solution += 1
                         break
 
-                    # Choose random unfilled cell
                     r, c = random.choice(empty_cells)
                     cell = current_puzzle.grid[r][c]
 
                     if not cell.candidates:
-                        # No candidates - effectively a dead end / NO_SOLUTION
                         stats.puzzles_rejected_no_solution += 1
                         break
 
-                    # Fill with one of its candidates
                     val = random.choice(list(cell.candidates))
 
-                    # Set the number AND update candidates to be just this number
-                    # This ensures the solver's consistency check passes next time
                     cell.number = val
                     cell.candidates = {val}
 
-                    # Next iteration should assume candidates are valid and just propagate the new info
                     reuse_candidates = True
 
                     # Continue inner loop
 
-                else:  # NO_SOLUTION
-                    # Contradiction. Start over.
+                else:
                     stats.puzzles_rejected_no_solution += 1
                     break
 
@@ -122,17 +105,12 @@ class Generator:
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
+        prefilled_cells_count: int = 0,
         max_attempts: int = 1000,
         n_jobs: int = 1,
     ) -> tuple[list[Puzzle], GenerationStats]:
-        # Divide total attempts evenly across the number of workers/jobs we want to use.
-        # If we want 1 puzzle and have 4 cores, we run 4 tasks to increase success probability.
         n_tasks = max(max_count, effective_n_jobs(n_jobs)) if n_jobs != 1 else 1
 
-        # If we have only 1 job, we just run 1 task for the whole max_count.
-        # If we have many jobs, we try to split max_count comfortably.
-        # However, to keep it simple and fulfill "on the jobs", let's use n_jobs tasks
-        # unless max_count is larger.
         n_workers = effective_n_jobs(n_jobs)
         n_tasks = max(max_count, n_workers) if max_count == 1 else n_workers
 
@@ -148,6 +126,7 @@ class Generator:
                 allow_diagonals=allow_diagonals,
                 max_complexity=max_complexity,
                 constraints=constraints,
+                prefilled_cells_count=prefilled_cells_count,
             )
             for _ in range(n_tasks)
         )
@@ -175,6 +154,7 @@ class Generator:
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
+        prefilled_cells_count: int,
     ) -> tuple[list[Puzzle], GenerationStats]:
         batch_puzzles: list[Puzzle] = []
         batch_stats = GenerationStats()
@@ -196,7 +176,8 @@ class Generator:
                 allow_diagonals=allow_diagonals,
                 max_complexity=max_complexity,
                 constraints=constraints,
-                max_attempts=total_attempts + remaining,  # Total budget for this task
+                prefilled_cells_count=prefilled_cells_count,
+                max_attempts=total_attempts + remaining,
                 _stats=batch_stats,
             )
 
@@ -226,3 +207,26 @@ class Generator:
             if not c.check(trace):
                 return False
         return True
+
+    def _prefill_cells(self, puzzle: Puzzle, count: int) -> None:
+        all_coords = [(r, c) for r in range(puzzle.rows) for c in range(puzzle.cols)]
+
+        count = min(count, len(all_coords))
+
+        selected_coords = random.sample(all_coords, count)
+
+        max_dim = max(puzzle.rows, puzzle.cols)
+
+        for r, c in selected_coords:
+            path_len = 0
+            cell = puzzle.grid[r][c]
+            dr, dc = cell.direction.delta
+            curr_r, curr_c = r + dr, c + dc
+            while 0 <= curr_r < puzzle.rows and 0 <= curr_c < puzzle.cols:
+                path_len += 1
+                curr_r += dr
+                curr_c += dc
+
+            upper_bound = min(path_len, max_dim - 1)
+            val = random.randint(0, upper_bound)
+            puzzle.grid[r][c].number = val

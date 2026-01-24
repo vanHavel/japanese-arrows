@@ -80,18 +80,11 @@ class Solver:
         if path_cache is None:
             path_cache = compute_all_paths(puzzle)
 
-        # IMPORTANT: Capture initial state before modification
         initial_puzzle_copy = copy.deepcopy(puzzle)
-
-        # Work on a copy unless we explicitly trust the input (but standard practice is copy)
-        # However, for generator speed, we might want to avoid copying IF we know what we are doing.
-        # But 'puzzle' is mutable, so deepcopy is safest.
-        # If 'reuse_candidates' is True, we assume puzzle already has candidates set up.
 
         puzzle = copy.deepcopy(puzzle)
         if not reuse_candidates:
             self._initialize_candidates(puzzle)
-        # Else: assume candidates are already valid
 
         steps: list[SolverStep] = []
         max_complexity_used = 0

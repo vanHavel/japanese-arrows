@@ -76,7 +76,6 @@ class NumberFraction(Constraint):
         if total_cells == 0:
             return True
 
-        # Calculate path lengths
         path_lengths = []
         for r in range(puzzle.rows):
             for c in range(puzzle.cols):
@@ -91,7 +90,6 @@ class NumberFraction(Constraint):
                 path_lengths.append(length)
 
         if self.number == 0:
-            # Number of 0s is exactly the number of cells with path_length == 0
             count = sum(1 for length in path_lengths if length == 0)
             fraction = count / total_cells
             if self.min_fraction is not None and fraction < self.min_fraction:
@@ -101,9 +99,6 @@ class NumberFraction(Constraint):
             return True
 
         if self.number == 1:
-            # Number of 1s:
-            # - At least cells with path_length == 1
-            # - At most cells with path_length >= 1
             min_count = sum(1 for length in path_lengths if length == 1)
             max_count = sum(1 for length in path_lengths if length >= 1)
 
@@ -113,8 +108,6 @@ class NumberFraction(Constraint):
                 return False
             return True
 
-        # For number >= 2
-        # max_count: path_length >= number
         max_count = sum(1 for length in path_lengths if length >= self.number)
         if self.min_fraction is not None and max_count / total_cells < self.min_fraction:
             return False
@@ -165,7 +158,6 @@ class FollowingArrowsFraction(Constraint):
         return count
 
     def check(self, trace: SolverResult) -> bool:
-        # Since this only depends on the arrows, pre_check logic applies
         return self.pre_check(trace.puzzle)
 
     def pre_check(self, puzzle: Puzzle) -> bool:
@@ -192,7 +184,6 @@ class PrefilledCellsFraction(Constraint):
     def check(self, trace: SolverResult) -> bool:
         puzzle = trace.initial_puzzle
         if puzzle is None:
-            # Fallback to current puzzle if initial not stored (should not happen with latest solver)
             puzzle = trace.puzzle
 
         total_cells = puzzle.rows * puzzle.cols
