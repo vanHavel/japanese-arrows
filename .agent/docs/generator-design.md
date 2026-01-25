@@ -30,3 +30,18 @@ The generator tracks detailed statistics to help tune constraints and understand
 *   `puzzles_rejected_no_solution`: Reached a dead end that rotation couldn't fix.
 *   `puzzles_rejected_excessive_guessing`: Exceeded the 25% clue threshold.
 *   `rejections_per_constraint`: Breakdown of which constraints were most difficult to satisfy.
+
+Current generation limits:
+- max complexity: 6
+  - 5x5 for straight
+  - 6x6 for diagonal
+- max_complexity: 5
+  - 6x6 for straight
+  - 7x7 for diagonal
+- max_complexity: 4
+  - unsuccesful for straight
+  - unsuccesful for diagonal
+- max_complexity: 3
+  - 7x7 for straight
+  - 8x8 for diagonal
+  

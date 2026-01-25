@@ -13,15 +13,15 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 9
-    cols = 9
-    allow_diagonals = True
-    max_complexity = 3
+    rows = 7
+    cols = 7
+    allow_diagonals = False
+    max_complexity = 4
     prefilled_cells_count = 0
 
     constraints = [
         FollowingArrowsFraction(min_fraction=0.05),
-        RuleComplexityFraction(complexity=3, min_fraction=0.001),
+        RuleComplexityFraction(complexity=4, min_fraction=0.001),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")
