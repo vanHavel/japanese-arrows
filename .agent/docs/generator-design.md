@@ -33,7 +33,7 @@ The generator tracks detailed statistics to help tune constraints and understand
 
 Current generation limits:
 - max complexity: 6
-  - 5x5 for straight
+  - 5x5 for straight (6x6 with long search)
   - 6x6 for diagonal
 - max_complexity: 5
   - 6x6 for straight
@@ -43,5 +43,5 @@ Current generation limits:
   - unsuccesful for diagonal
 - max_complexity: 3
   - 7x7 for straight
-  - 8x8 for diagonal
+  - 8x8 for diagonal (9x9 with long search)
   
