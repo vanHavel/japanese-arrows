@@ -235,10 +235,14 @@ body {
     display: grid;
     /* Grid template defined in JS based on puzzle size */
     background-color: var(--cell-border);
-    gap: 2px;
+    gap: 0;
     border: 2px solid var(--cell-border);
     user-select: none;
     box-shadow: var(--shadow-md);
+}
+
+.puzzle-grid.show-grid {
+    gap: 2px;
 }
 
 .cell {
@@ -270,19 +274,17 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    font-size: 2rem;
-    /* Initial visual check */
     pointer-events: none;
-    /* Let clicks pass through to cell */
+    z-index: 1;
+    /* Ensure arrow is below numbers but visible */
 }
 
 /* SVG styling for arrows */
-.arrow svg {
-    width: 70%;
-    height: 70%;
-    stroke: var(--arrow-color);
-    stroke-width: 2;
-    fill: none;
+.arrow img {
+    width: 80%;
+    /* Adjust as needed */
+    height: 80%;
+    object-fit: contain;
 }
 
 .cell-value {

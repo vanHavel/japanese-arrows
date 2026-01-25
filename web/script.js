@@ -26,6 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modePencilBtn = document.getElementById('mode-pencil');
     const resetBtn = document.getElementById('btn-reset');
     const shareBtn = document.getElementById('btn-share');
+    const toggleGridBtn = document.getElementById('toggle-grid');
     const toast = document.getElementById('toast');
 
     // Modal Elements
@@ -39,6 +40,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     modePenBtn.addEventListener('click', () => setMode('pen'));
     modePencilBtn.addEventListener('click', () => setMode('pencil'));
+
+    toggleGridBtn.addEventListener('click', () => {
+        puzzleGrid.classList.toggle('show-grid');
+        toggleGridBtn.classList.toggle('active'); // Optional: style active state
+    });
 
     document.addEventListener('keydown', handleKeyDown);
     document.addEventListener('keyup', handleKeyUp);
@@ -250,15 +256,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function getArrowSvg(arrowChar) {
-        // Map char to rotation
-        const rotations = { '↑': 0, '↗': 45, '→': 90, '↘': 135, '↓': 180, '↙': 225, '←': 270, '↖': 315 };
-        const rot = rotations[arrowChar] ?? 0;
-
-        // Simple arrow path
-        return `<svg viewBox="0 0 24 24" style="transform: rotate(${rot}deg)">
-            <line x1="12" y1="19" x2="12" y2="5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-            <polyline points="5 12 12 5 19 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" fill="none"/>
-        </svg>`;
+        const fileMap = {
+            '↑': 'arrow_NORTH.svg',
+            '↗': 'arrow_NORTH_EAST.svg',
+            '→': 'arrow_EAST.svg',
+            '↘': 'arrow_SOUTH_EAST.svg',
+            '↓': 'arrow_SOUTH.svg',
+            '↙': 'arrow_SOUTH_WEST.svg',
+            '←': 'arrow_WEST.svg',
+            '↖': 'arrow_NORTH_WEST.svg'
+        };
+        const filename = fileMap[arrowChar];
+        if (!filename) return '';
+        return `<img src="/assets/arrows/${filename}" alt="${arrowChar}" draggable="false" />`;
     }
 
     function selectCell(r, c) {

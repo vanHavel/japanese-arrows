@@ -1,4 +1,4 @@
-.PHONY: install lint typecheck
+.PHONY: install lint typecheck test serve
 
 install:
 	uv sync --group dev
@@ -11,4 +11,7 @@ typecheck:
 
 test:
 	uv run --group dev pytest
+
+serve:
+	uv run python -m http.server --directory web 8000
 
