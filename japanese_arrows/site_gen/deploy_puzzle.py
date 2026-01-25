@@ -14,7 +14,7 @@ def generate_and_save_puzzle(
     max_complexity: int,
     target_complexity: int,
     difficulty_name: str,
-    base_dir: Path = Path("web/puzzles"),
+    base_dir: Path = Path("content"),
 ) -> None:
     # Parse date
     try:

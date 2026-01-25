@@ -12,10 +12,19 @@ if str(project_root) not in sys.path:
 from japanese_arrows.site_gen.archive import build_puzzle_archive  # noqa: E402
 from japanese_arrows.site_gen.assets import generate_all_arrow_assets  # noqa: E402
 from japanese_arrows.site_gen.deploy_puzzle import generate_and_save_puzzle  # noqa: E402
+from japanese_arrows.site_gen.sync import sync_puzzles  # noqa: E402
+
+# This constant will be updated by a daily cronjob
+RELEASE_DATE = "2026-01-25"
 
 
 def cmd_build(args: argparse.Namespace) -> None:
     print("Building static site assets...")
+    sync_puzzles(
+        content_dir=project_root / "content",
+        web_puzzles_dir=project_root / "web" / "puzzles",
+        release_date=RELEASE_DATE,
+    )
     generate_all_arrow_assets()
     build_puzzle_archive()
     print("Site build complete.")
