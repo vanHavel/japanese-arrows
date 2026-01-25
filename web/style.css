@@ -24,6 +24,21 @@
     --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.05);
 }
 
+kbd {
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 0 0 rgba(255, 255, 255, 0.7) inset;
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+}
+
 * {
     box-sizing: border-box;
     margin: 0;
@@ -162,28 +177,22 @@ body {
 }
 
 /* Reusing badge colors from archive but make them specific if needed */
-.difficulty-badge.diff-easy {
+.difficulty-badge.diff-normal {
     background-color: #f1f5f0;
     color: #4a6741;
     border: 1px solid #d8e6d1;
 }
 
-.difficulty-badge.diff-medium {
+.difficulty-badge.diff-hard {
     background-color: #fdfaf0;
     color: #8a6d3b;
     border: 1px solid #f1e6c9;
 }
 
-.difficulty-badge.diff-hard {
+.difficulty-badge.diff-devious {
     background-color: #fcf4f4;
     color: #a94442;
     border: 1px solid #f2dede;
-}
-
-.difficulty-badge.diff-extreme {
-    background-color: #2c3e50;
-    color: #ecf0f1;
-    border: 1px solid #34495e;
 }
 
 .nav-btn {
@@ -302,14 +311,16 @@ body {
     padding: 0.5rem;
     border-radius: 12px;
     border: 1px solid var(--border-color);
+    width: 100%;
 }
 
 .mode-btn {
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     gap: 0.5rem;
-    padding: 0.75rem;
+    padding: 0.75rem 1rem;
+    width: 100%;
     border: 1px solid transparent;
     border-radius: 8px;
     background: transparent;
@@ -323,6 +334,25 @@ body {
     background-color: #f4eee1;
     color: var(--primary-color);
     border-color: #dcd0b9;
+}
+
+.kbd-hint {
+    font-size: 0.65rem;
+    padding: 2px 4px;
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 0 0 rgba(255, 255, 255, 0.7) inset;
+    color: #333;
+    margin-left: auto;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+}
+
+.mode-btn.active .kbd-hint {
+    background-color: #f7f7f7;
+    border-color: #dcd0b9;
+    color: var(--primary-color);
 }
 
 
