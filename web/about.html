@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - Yazudo</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+JP:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        .about-content {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+            color: var(--text-color);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .about-content h1,
+        .about-content h2,
+        .about-content h3 {
+            color: var(--text-color);
+            margin-bottom: 1rem;
+            font-family: 'Noto Serif JP', serif;
+        }
+
+        .about-content h1 {
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .about-content section {
+            margin-bottom: 3rem;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 1rem;
+        }
+
+        .about-content section:last-child {
+            border-bottom: none;
+        }
+
+        .about-content p {
+            line-height: 1.7;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+
+        .about-content ul {
+            margin-bottom: 1.5rem;
+            padding-left: 2rem;
+            color: var(--text-color);
+        }
+
+        .about-content li {
+            margin-bottom: 0.75rem;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        .example-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 2rem;
+            margin: 2rem 0;
+            padding: 3rem 2rem;
+            background: #fff;
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .example-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            grid-template-rows: repeat(4, 60px);
+            gap: 0;
+            background-color: var(--cell-border);
+            border: 2px solid var(--cell-border);
+            width: fit-content;
+            box-shadow: var(--shadow-md);
+        }
+
+        .example-cell {
+            width: 60px;
+            height: 60px;
+            background-color: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            position: relative;
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* Number on top of arrow */
+        .example-cell span {
+            z-index: 2;
+            color: var(--primary-color);
+            font-weight: 800;
+            font-size: 1.6rem;
+            text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+            pointer-events: none;
+        }
+
+        .arrow-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1;
+        }
+
+        .arrow-bg img {
+            width: 90%;
+            height: 90%;
+            opacity: 0.8;
+        }
+
+        .example-row {
+            display: flex;
+            gap: 4rem;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .example-column {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .example-column h4 {
+            margin: 0;
+            color: var(--secondary-color);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">Yazudo</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/archive">Archive</a>
+                <a href="/about.html" class="active">About</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="about-content">
+            <h1>About Yazudo</h1>
+
+            <section>
+                <h2>What is Yazudo?</h2>
+                <p>
+                    Yazudo (矢図道) is a logic puzzle game. The name combines the Japanese characters for
+                    "arrow" (矢, Ya), "diagram" (図, Zu), and "way" or "path" (道, Do).
+                </p>
+                <p>
+                    This puzzle is known by several other names, including:
+                </p>
+                <ul>
+                    <li>Pointer</li>
+                    <li>Japanese Arrows</li>
+                    <li>Zeiger (German)</li>
+                    <li>Nummernpfeile (German)</li>
+                </ul>
+            </section>
+
+            <section>
+                <h2>History</h2>
+                <p>
+                    According to Donald E. Knuth, this puzzle type was first published in 1992 by Masanori Natsuhara as
+                    part of <em>Puzuraa</em> magazine.
+                </p>
+            </section>
+
+            <section>
+                <h2>How to Play</h2>
+                <p>
+                    The rules are simple but allow for complex logical deductions:
+                </p>
+                <ul>
+                    <li>A number must be placed into each arrow.</li>
+                    <li>The number must be equal to the count of <strong>distinct</strong> numbers that the arrow
+                        specifically points at.</li>
+                </ul>
+                <p>
+                    <b>Controls:</b>
+                </p>
+                <ul>
+                    <li>Use the numpad or digit keys to enter numbers.</li>
+                    <li>Use <strong>Pencil Mode</strong> to take notes. You can hold <kbd>CTRL</kbd> to
+                        temporarily
+                        switch to pencil mode while in pen mode.</li>
+                </ul>
+
+                <div class="example-container">
+                    <h3>Example Puzzle (4x4)</h3>
+                    <div class="example-row">
+                        <div class="example-column">
+                            <h4>Puzzle</h4>
+                            <div class="example-grid">
+                                <!-- Row 0 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                </div>
+                                <!-- Row 1 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                </div>
+                                <!-- Row 2 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_WEST.svg"></div>
+                                </div>
+                                <!-- Row 3 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="example-column">
+                            <h4>Solution</h4>
+                            <div class="example-grid">
+                                <!-- Row 0: 2, 1, 0, 0 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_EAST.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH.svg"></div>
+                                    <span>0</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                    <span>0</span>
+                                </div>
+                                <!-- Row 1: 2, 1, 2, 1 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <!-- Row 2: 1, 1, 2, 2 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_SOUTH_WEST.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_WEST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <!-- Row 3: 3, 2, 1, 2 -->
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_EAST.svg"></div>
+                                    <span>3</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_EAST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_EAST.svg"></div>
+                                    <span>1</span>
+                                </div>
+                                <div class="example-cell">
+                                    <div class="arrow-bg"><img src="assets/arrows/arrow_NORTH_WEST.svg"></div>
+                                    <span>2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Tips for Starting Out</h2>
+                <ul>
+                    <li><strong>Look for edges:</strong> Start with arrows pointing outside the grid; they must always
+                        be 0 because they point at nothing.</li>
+                    <li><strong>Single targets:</strong> Arrows pointing at only one other arrow are also great starting
+                        points.</li>
+                    <li><strong>Limited visibility:</strong> Look into arrows that have only a few free cells ahead of
+                        them in their path. This limits the possible numbers that can go into that arrow.</li>
+                </ul>
+            </section>
+        </div>
+    </main>
+</body>
+
+</html>
