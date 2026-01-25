@@ -4,7 +4,7 @@ from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
 
 # Configuration
-PUZZLE_PATH = "puzzles/phil_evil_2.txt"
+PUZZLE_PATH = "web/puzzles/2026/01/24/puzzle.txt"
 
 
 def main() -> None:

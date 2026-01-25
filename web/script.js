@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modePencilBtn = document.getElementById('mode-pencil');
     const resetBtn = document.getElementById('btn-reset');
     const shareBtn = document.getElementById('btn-share');
+    const fillSolutionBtn = document.getElementById('btn-fill-solution');
     const checkBtn = document.getElementById('btn-check');
     const toggleGridBtn = document.getElementById('toggle-grid');
     const toast = document.getElementById('toast');
@@ -96,6 +97,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     shareBtn.addEventListener('click', shareUrl);
+    fillSolutionBtn.addEventListener('click', fillSolution);
     checkBtn.addEventListener('click', checkPuzzle);
 
     // Navigation Events
@@ -483,6 +485,19 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function resetPuzzle() {
         initUserState();
+        renderGrid();
+    }
+
+    function fillSolution() {
+        for (let r = 0; r < puzzle.rows; r++) {
+            for (let c = 0; c < puzzle.cols; c++) {
+                if (!puzzle.grid[r][c].initial) {
+                    userState.grid[r][c].val = solution[r][c];
+                    userState.grid[r][c].marks.clear();
+                    userState.grid[r][c].isError = false;
+                }
+            }
+        }
         renderGrid();
     }
 

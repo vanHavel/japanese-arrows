@@ -41,7 +41,7 @@ There are files
 - puzzle.txt with text representation of the puzzle
 - solution.txt with text representation of the solution
 - metadata.yaml with metadata
-  - difficulty: Easy (3 complexity), Medium (5 complexity), Hard (5 complexity), Extreme (6 complexity and lots of backtracking)
+  - difficulty: Easy (3 complexity), Medium (5 complexity), Hard (6 complexity)
   - size: 5x5, 6x6
   - arrows: Straight, Diagonal
 
@@ -49,8 +49,8 @@ There are files
 
 Monday: Easy, 5x5, Straight
 Tuesday: Medium, 6x6, Diagonal
-Wednesday: Hard, 5x5 Straight
+Wednesday: Medium, 6x6 Straight
 Thursday: Easy, 5x5, Diagonal
-Friday: Medium, 6x6, Straight
+Friday: Medium, 5x5, Straight
 Saturday: Hard, 6x6, Diagonal
-Sunday: Extreme, 6x6, Straight
+Sunday: Hard, 6x6, Straight
