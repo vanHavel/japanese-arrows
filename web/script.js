@@ -45,6 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prevDayBtn = document.getElementById('prev-day');
     const nextDayBtn = document.getElementById('next-day');
     const currentDateDisplay = document.getElementById('current-date');
+    const difficultyDisplay = document.getElementById('difficulty-display');
 
     // Modal Elements
     const resetModal = document.getElementById('reset-modal');
@@ -108,6 +109,15 @@ document.addEventListener('DOMContentLoaded', () => {
         updateNavigationButtons();
     }
 
+    function updateDifficultyDisplay(difficulty) {
+        difficultyDisplay.textContent = difficulty;
+        // Reset classes
+        difficultyDisplay.className = 'difficulty-badge';
+        if (difficulty) {
+            difficultyDisplay.classList.add(`diff-${difficulty.toLowerCase()}`);
+        }
+    }
+
     function updateDateDisplay() {
         const dateObj = new Date(currentDate);
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
@@ -146,9 +156,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const path = `/puzzles/${y}/${m}/${d}`;
 
             // Fetch data before clearing grid to avoid flash
-            const [puzzleRes, solutionRes] = await Promise.all([
+            const [puzzleRes, solutionRes, metadataRes] = await Promise.all([
                 fetch(`${path}/puzzle.txt`),
-                fetch(`${path}/solution.txt`)
+                fetch(`${path}/solution.txt`),
+                fetch(`${path}/metadata.yaml`)
             ]);
 
             if (!puzzleRes.ok) throw new Error('Puzzle not found');
@@ -156,6 +167,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const puzzleText = await puzzleRes.text();
             const solutionText = await solutionRes.text();
+
+            // Parse Metadata if available
+            let difficulty = 'Unknown';
+            if (metadataRes.ok) {
+                const metaText = await metadataRes.text();
+                // simple parse: "difficulty: Value"
+                const match = metaText.match(/difficulty:\s*(.+)/i);
+                if (match) {
+                    difficulty = match[1].trim();
+                }
+            }
+            updateDifficultyDisplay(difficulty);
 
             parsePuzzle(puzzleText);
             parseSolution(solutionText);

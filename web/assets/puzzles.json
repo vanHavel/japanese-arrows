@@ -1,14 +1,14 @@
 [
   {
     "date": "2026-01-25",
-    "difficulty": "Easy",
+    "difficulty": "Hard",
     "size": "5x5",
     "arrows": "Straight"
   },
   {
     "date": "2026-01-24",
-    "difficulty": "Hard",
-    "size": "6x6",
-    "arrows": "Straight"
+    "difficulty": "Easy",
+    "size": "5x5",
+    "arrows": "Diagonal"
   }
 ]

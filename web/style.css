@@ -94,10 +94,46 @@ body {
 }
 
 .date-display {
-    font-size: 1.25rem;
-    font-weight: 600;
     min-width: 200px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+#current-date {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.difficulty-badge {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+/* Reusing badge colors from archive but make them specific if needed */
+.difficulty-badge.diff-easy {
+    background-color: #d1fae5;
+    color: #065f46;
+}
+
+.difficulty-badge.diff-medium {
+    background-color: #fef3c7;
+    color: #92400e;
+}
+
+.difficulty-badge.diff-hard {
+    background-color: #fee2e2;
+    color: #991b1b;
+}
+
+.difficulty-badge.diff-extreme {
+    background-color: #450a0a;
+    color: #fecaca;
 }
 
 .nav-btn {
