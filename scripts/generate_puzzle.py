@@ -6,6 +6,7 @@ from japanese_arrows.generator import (
     Generator,
     RuleComplexityFraction,
 )
+from japanese_arrows.io import write_puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
 
 
@@ -13,15 +14,15 @@ def main() -> None:
     gen = Generator()
 
     # Configuration for generation
-    rows = 7
-    cols = 7
+    rows = 5
+    cols = 5
     allow_diagonals = False
     max_complexity = 4
     prefilled_cells_count = 0
 
     constraints = [
         FollowingArrowsFraction(min_fraction=0.05),
-        RuleComplexityFraction(complexity=4, min_fraction=0.001),
+        RuleComplexityFraction(complexity=3, min_fraction=0.001),
     ]
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")
@@ -65,6 +66,8 @@ def main() -> None:
     else:
         print("\nGenerated Puzzle:")
         print(puzzle.to_string())
+        write_puzzle(puzzle, "scripts/output/generated_puzzle.svg")
+        print("Saved problem to scripts/output/generated_puzzle.svg")
 
     print("Generation Statistics:")
     print(f"  Puzzles successfully generated: {stats.puzzles_successfully_generated}")
@@ -83,6 +86,8 @@ def main() -> None:
         if res.status == SolverStatus.SOLVED:
             print("\nSolved Puzzle:")
             print(res.puzzle.to_string())
+            write_puzzle(res.puzzle, "scripts/output/generated_solution.svg")
+            print("Saved solution to scripts/output/generated_solution.svg")
 
             # Count rule applications by complexity
             complexity_counts: dict[int, int] = defaultdict(int)
