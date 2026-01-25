@@ -1,7 +1,11 @@
+import pytest
+
 from japanese_arrows.generator.constraints import Constraint, RuleComplexityFraction
 from japanese_arrows.generator.generator import Generator
 from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
+
+pytestmark = pytest.mark.integration
 
 
 def test_generator_simple() -> None:

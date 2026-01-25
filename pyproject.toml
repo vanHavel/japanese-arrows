@@ -38,11 +38,13 @@ dev = [
     "mypy>=1.19.1",
     "pre-commit>=4.1.0",
     "pytest>=9.0.2",
+    "pytest-xdist>=3.8.0",
     "ruff>=0.14.13",
     "types-pyyaml>=6.0.12",
 ]
 
 [tool.pytest.ini_options]
+addopts = "-m 'not integration'"
 markers = [
     "integration: mark a test as an integration test",
 ]

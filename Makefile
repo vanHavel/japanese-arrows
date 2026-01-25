@@ -9,8 +9,14 @@ lint:
 typecheck:
 	uv run --group dev mypy .
 
-test:
-	uv run --group dev pytest
+test-unit:
+	uv run --group dev pytest tests/unit
+
+test-integration:
+	uv run --group dev pytest -n 7 -m "integration" tests/integration
+
+test-all:
+	uv run --group dev pytest -n 7 -m "integration"
 
 serve:
 	uv run python -m http.server --directory web 8000
