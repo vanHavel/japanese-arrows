@@ -1,0 +1,124 @@
+/* Archive Page */
+.archive-area {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.archive-controls {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+    flex-wrap: wrap;
+}
+
+.filter-select {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: #fff;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s;
+}
+
+.filter-select:hover {
+    border-color: var(--secondary-color);
+}
+
+.filter-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px var(--selection-color);
+}
+
+.archive-table-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.archive-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.archive-table th,
+.archive-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.archive-table th {
+    background-color: var(--bg-color);
+    font-weight: 600;
+    color: var(--secondary-color);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.archive-table th:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.archive-table th span {
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+}
+
+.archive-table tr:last-child td {
+    border-bottom: none;
+}
+
+.archive-table tr {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.archive-table tr:hover {
+    background-color: var(--btn-hover);
+}
+
+.archive-table tr td {
+    color: var(--text-color);
+}
+
+.loading-spinner {
+    padding: 2rem;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+#page-info {
+    font-variant-numeric: tabular-nums;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+/* Responsive Table */
+@media (max-width: 600px) {
+
+    .archive-table th:nth-child(3),
+    .archive-table td:nth-child(3),
+    .archive-table th:nth-child(4),
+    .archive-table td:nth-child(4) {
+        display: none;
+    }
+}
