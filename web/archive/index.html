@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archive - Japanese Arrows</title>
+    <link rel="stylesheet" href="../style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <nav class="navbar">
+        <div class="nav-content">
+            <div class="logo">Japanese Arrows</div>
+            <div class="nav-links">
+                <a href="/">Home</a>
+                <a href="/archive" class="active">Archive</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <div class="archive-area">
+            <h1>Puzzle Archive</h1>
+            <p style="text-align: center; margin-bottom: 2rem; color: var(--secondary-color);">Select a past puzzle to
+                play.</p>
+
+            <div class="archive-controls">
+                <select id="filter-difficulty" class="filter-select">
+                    <option value="">All Difficulties</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Hard">Hard</option>
+                    <option value="Extreme">Extreme</option>
+                </select>
+                <select id="filter-size" class="filter-select">
+                    <option value="">All Sizes</option>
+                    <option value="5x5">5x5</option>
+                    <option value="6x6">6x6</option>
+                </select>
+                <select id="filter-arrows" class="filter-select">
+                    <option value="">All Arrows</option>
+                    <option value="Straight">Straight</option>
+                    <option value="Diagonal">Diagonal</option>
+                </select>
+            </div>
+
+            <div class="archive-table-container">
+                <table class="archive-table" id="archive-table">
+                    <thead>
+                        <tr>
+                            <th data-sort="date">Date <span>▼</span></th>
+                            <th data-sort="difficulty">Difficulty <span></span></th>
+                            <th data-sort="size">Size <span></span></th>
+                            <th data-sort="arrows">Arrows <span></span></th>
+                        </tr>
+                    </thead>
+                    <tbody id="archive-list">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+                <div id="loading-msg" class="loading-spinner">Loading archive...</div>
+            </div>
+
+            <div class="pagination-controls" id="pagination-controls">
+                <button id="prev-page" class="nav-btn" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <span id="page-info">Page 1 of 1</span>
+                <button id="next-page" class="nav-btn" disabled>
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </main>
+
+    <script src="archive.js"></script>
+</body>
+
+</html>
