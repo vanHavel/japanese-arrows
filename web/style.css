@@ -480,6 +480,116 @@ body {
     align-items: center;
 }
 
+/* Archive Page */
+/* Archive Page - Table Layout */
+.archive-area {
+    width: 100%;
+    max-width: 800px;
+    /* Increased max width for table */
+    margin: 0 auto;
+}
+
+.archive-table-container {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--border-color);
+    overflow: hidden;
+}
+
+.archive-table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.archive-table th,
+.archive-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.archive-table th {
+    background-color: var(--bg-color);
+    font-weight: 600;
+    color: var(--secondary-color);
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.archive-table th:hover {
+    background-color: var(--border-color);
+    color: var(--text-color);
+}
+
+.archive-table th span {
+    font-size: 0.8rem;
+    margin-left: 0.25rem;
+}
+
+.archive-table tr:last-child td {
+    border-bottom: none;
+}
+
+.archive-table tr {
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.archive-table tr:hover {
+    background-color: var(--btn-hover);
+}
+
+.archive-table tr td {
+    color: var(--text-color);
+}
+
+.hidden {
+    display: none !important;
+}
+
+.loading-spinner {
+    padding: 2rem;
+    text-align: center;
+    color: var(--secondary-color);
+}
+
+/* ... existing ... */
+
+.pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+#page-info {
+    font-variant-numeric: tabular-nums;
+    color: var(--secondary-color);
+    font-weight: 500;
+}
+
+/* Badges reuse existing styles but tweak font size if needed */
+.badge {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.75rem;
+}
+
+/* Responsive Table */
+@media (max-width: 600px) {
+
+    .archive-table th:nth-child(3),
+    .archive-table td:nth-child(3),
+    .archive-table th:nth-child(4),
+    .archive-table td:nth-child(4) {
+        display: none;
+        /* Hide Size and Arrows on very small screens */
+    }
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .game-container {

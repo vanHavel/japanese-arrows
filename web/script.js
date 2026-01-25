@@ -139,22 +139,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     async function loadPuzzle() {
+        document.body.style.cursor = 'wait';
         try {
             // Construct path from currentDate
             const [y, m, d] = currentDate.split('-');
             const path = `/puzzles/${y}/${m}/${d}`;
 
-            // Clear current grid to avoid artifacts during load
-            puzzleGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem;">Loading...</div>';
+            // Fetch data before clearing grid to avoid flash
+            const [puzzleRes, solutionRes] = await Promise.all([
+                fetch(`${path}/puzzle.txt`),
+                fetch(`${path}/solution.txt`)
+            ]);
 
-            // Fetch puzzle.txt
-            const puzzleRes = await fetch(`${path}/puzzle.txt`);
             if (!puzzleRes.ok) throw new Error('Puzzle not found');
-            const puzzleText = await puzzleRes.text();
-
-            // Fetch solution.txt
-            const solutionRes = await fetch(`${path}/solution.txt`);
             if (!solutionRes.ok) throw new Error('Solution not found');
+
+            const puzzleText = await puzzleRes.text();
             const solutionText = await solutionRes.text();
 
             parsePuzzle(puzzleText);
@@ -164,11 +164,18 @@ document.addEventListener('DOMContentLoaded', () => {
             renderGrid();
         } catch (err) {
             console.error('Failed to load puzzle', err);
+
+            // Reset grid layout for error message
+            puzzleGrid.style.gridTemplateColumns = '1fr';
+            puzzleGrid.style.gridTemplateRows = 'auto';
+
             puzzleGrid.innerHTML = `
                 <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--error-color);">
                     <h3>No Puzzle Found</h3>
                     <p>There is no puzzle available for ${currentDate}.</p>
                 </div>`;
+        } finally {
+            document.body.style.cursor = 'default';
         }
     }
 
