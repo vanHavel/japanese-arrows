@@ -103,7 +103,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             // Order difficulty specifically?
             if (sortField === 'difficulty') {
-                const diffOrder = { 'Normal': 1, 'Hard': 2, 'Devious': 3, 'Unknown': 4 };
+                const diffOrder = { 'Easy': 1, 'Normal': 2, 'Hard': 3, 'Devious': 4, 'Unknown': 5 };
                 valA = diffOrder[valA] || 99;
                 valB = diffOrder[valB] || 99;
             }

@@ -42,16 +42,16 @@ There are files
 - puzzle.txt with text representation of the puzzle
 - solution.txt with text representation of the solution
 - metadata.yaml with metadata
-  - difficulty: Normal (3 complexity), Hard (5 complexity), Devious (6 complexity)
+  - difficulty: Easy (3 complexity, 4x4), Normal (3-4 complexity, 5x5-6x6), Hard (5 complexity, 5x5-6x6), Devious (6 complexity, 6x6)
   - size: 5x5, 6x6
   - arrows: Straight, Diagonal
 
 # Puzzle Release Schedule
 
-Monday: Normal, 5x5, Straight
-Tuesday: Hard, 6x6, Diagonal
+Monday: Easy, 4x4, Straight
+Tuesday: Normal, 5x5, Diagonal
 Wednesday: Hard, 6x6 Straight
-Thursday: Normal, 5x5, Diagonal
-Friday: Hard, 5x5, Straight
+Thursday: Hard, 5x5, Diagonal
+Friday: Normal, 5x5, Straight
 Saturday: Devious, 6x6, Diagonal
 Sunday: Devious, 6x6, Straight

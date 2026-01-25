@@ -141,8 +141,9 @@ body {
     padding: 1rem;
 }
 
-/* Common Components */
-.difficulty-badge {
+/* Difficulty Badges */
+.difficulty-badge,
+.badge {
     font-size: 0.9rem;
     padding: 0.25rem 0.75rem;
     border-radius: 999px;
@@ -150,27 +151,38 @@ body {
     display: inline-block;
 }
 
-.difficulty-badge.diff-normal {
+.badge {
+    font-size: 0.85rem;
+}
+
+.diff-easy {
     background-color: #f1f5f0;
     color: #4a6741;
     border: 1px solid #d8e6d1;
 }
 
-.difficulty-badge.diff-hard {
+.diff-normal {
+    background-color: #f0f4f8;
+    color: #2980b9;
+    border: 1px solid #d6eaf8;
+}
+
+.diff-hard {
     background-color: #fdfaf0;
     color: #8a6d3b;
     border: 1px solid #f1e6c9;
 }
 
-.difficulty-badge.diff-devious {
+.diff-devious {
     background-color: #fcf4f4;
     color: #a94442;
     border: 1px solid #f2dede;
 }
 
-.badge {
-    font-size: 0.85rem;
-    padding: 0.25rem 0.75rem;
+.badge.size {
+    background-color: #f8f9fa;
+    color: var(--secondary-color);
+    border: 1px solid var(--border-color);
 }
 
 .nav-btn {
