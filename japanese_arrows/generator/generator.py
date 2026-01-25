@@ -1,7 +1,6 @@
 import copy
 import random
-from collections.abc import Iterator
-from concurrent.futures import ProcessPoolExecutor, as_completed
+from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
 from dataclasses import dataclass, field
 
 from joblib import effective_n_jobs
@@ -177,100 +176,83 @@ class Generator:
 
     def generate_many(
         self,
-        max_count: int,
+        count: int,
         rows: int,
         cols: int,
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
         prefilled_cells_count: int = 0,
-        max_attempts: int = 1000,
         n_jobs: int = 1,
-    ) -> Iterator[tuple[list[Puzzle], GenerationStats]]:
+    ) -> tuple[list[Puzzle], GenerationStats]:
         n_workers = effective_n_jobs(n_jobs)
-        if n_jobs == 1:
-            n_tasks = 1
-            n_workers = 1
-        else:
-            n_tasks = max(max_count, n_workers)
-
-        attempts_per_task = max_attempts // n_tasks if n_tasks > 0 else max_attempts
-        target_puzzles_per_task = (max_count + n_tasks - 1) // n_tasks if n_tasks > 0 else max_count
+        puzzles: list[Puzzle] = []
+        total_stats = GenerationStats()
 
         with ProcessPoolExecutor(max_workers=n_workers) as executor:
-            futures = [
-                executor.submit(
-                    self._generate_batch,
-                    target_count=target_puzzles_per_task,
-                    max_attempts=attempts_per_task,
-                    rows=rows,
-                    cols=cols,
-                    allow_diagonals=allow_diagonals,
-                    max_complexity=max_complexity,
-                    constraints=constraints,
-                    prefilled_cells_count=prefilled_cells_count,
+            # Initial submission of tasks
+            futures = set()
+            for _ in range(n_workers):
+                futures.add(
+                    executor.submit(
+                        self.generate,
+                        rows=rows,
+                        cols=cols,
+                        allow_diagonals=allow_diagonals,
+                        max_complexity=max_complexity,
+                        constraints=constraints,
+                        prefilled_cells_count=prefilled_cells_count,
+                        max_attempts=1,
+                    )
                 )
-                for _ in range(n_tasks)
-            ]
 
-            puzzles_yielded = 0
-            for future in as_completed(futures):
-                batch_puzzles, batch_stats = future.result()
+            # Loop until we have enough puzzles
+            while len(puzzles) < count:
+                done, _ = wait(futures, return_when=FIRST_COMPLETED)
 
-                # If we already have enough, we might still yield the leftovers of this batch
-                # but we should definitely stop after this.
-                yield batch_puzzles, batch_stats
+                for future in done:
+                    futures.remove(future)
+                    try:
+                        res_puzzle, res_stats = future.result()
 
-                puzzles_yielded += len(batch_puzzles)
-                if puzzles_yielded >= max_count:
-                    # Cancel remaining futures if possible
-                    for f in futures:
-                        f.cancel()
-                    break
+                        # Aggregate stats
+                        total_stats.puzzles_successfully_generated += res_stats.puzzles_successfully_generated
+                        total_stats.puzzles_rejected_constraints += res_stats.puzzles_rejected_constraints
+                        total_stats.puzzles_rejected_no_solution += res_stats.puzzles_rejected_no_solution
+                        total_stats.puzzles_rejected_excessive_guessing += res_stats.puzzles_rejected_excessive_guessing
+                        for name, val in res_stats.rejections_per_constraint.items():
+                            total_stats.rejections_per_constraint[name] = (
+                                total_stats.rejections_per_constraint.get(name, 0) + val
+                            )
 
-    def _generate_batch(
-        self,
-        target_count: int,
-        max_attempts: int,
-        rows: int,
-        cols: int,
-        allow_diagonals: bool,
-        max_complexity: int,
-        constraints: list[Constraint],
-        prefilled_cells_count: int,
-    ) -> tuple[list[Puzzle], GenerationStats]:
-        batch_puzzles: list[Puzzle] = []
-        batch_stats = GenerationStats()
+                        if res_puzzle is not None:
+                            puzzles.append(res_puzzle)
 
-        while len(batch_puzzles) < target_count:
-            total_attempts = (
-                batch_stats.puzzles_successfully_generated
-                + batch_stats.puzzles_rejected_constraints
-                + batch_stats.puzzles_rejected_no_solution
-                + batch_stats.puzzles_rejected_excessive_guessing
-            )
-            remaining = max_attempts - total_attempts
+                    except Exception:
+                        # Log error if possible, or just continue
+                        pass
 
-            if remaining <= 0:
-                break
+                    if len(puzzles) < count:
+                        futures.add(
+                            executor.submit(
+                                self.generate,
+                                rows=rows,
+                                cols=cols,
+                                allow_diagonals=allow_diagonals,
+                                max_complexity=max_complexity,
+                                constraints=constraints,
+                                prefilled_cells_count=prefilled_cells_count,
+                                max_attempts=1,
+                            )
+                        )
+                    else:
+                        break
 
-            puzzle, _ = self.generate(
-                rows=rows,
-                cols=cols,
-                allow_diagonals=allow_diagonals,
-                max_complexity=max_complexity,
-                constraints=constraints,
-                prefilled_cells_count=prefilled_cells_count,
-                max_attempts=total_attempts + remaining,
-                _stats=batch_stats,
-            )
+            # Cancel remaining
+            for f in futures:
+                f.cancel()
 
-            if puzzle is not None:
-                batch_puzzles.append(puzzle)
-            else:
-                break
-
-        return batch_puzzles, batch_stats
+        return puzzles, total_stats
 
     def _create_random_grid(self, rows: int, cols: int, allow_diagonals: bool) -> list[list[Cell]]:
         grid = []

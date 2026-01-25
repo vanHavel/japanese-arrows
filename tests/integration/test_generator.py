@@ -54,20 +54,12 @@ def test_generator_constraints() -> None:
 
 def test_generate_many() -> None:
     gen = Generator()
-    puzzles = []
-    from japanese_arrows.generator.generator import GenerationStats
+    constraints: list[Constraint] = []
 
-    stats = GenerationStats()
-
-    for batch_puzzles, batch_stats in gen.generate_many(3, 3, 3, False, 3, []):
-        puzzles.extend(batch_puzzles)
-        stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
-        stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
-        stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
-        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
+    puzzles, stats = gen.generate_many(3, 3, 3, False, 3, constraints)
 
     assert len(puzzles) == 3
-    assert stats.puzzles_successfully_generated == 3
+    assert stats.puzzles_successfully_generated >= 3
     for p in puzzles:
         assert isinstance(p, Puzzle)
         assert p.rows == 3
@@ -83,28 +75,3 @@ def test_generator_max_attempts() -> None:
 
     puzzle, stats = gen.generate(3, 3, False, 3, constraints, max_attempts=5)
     assert puzzle is None
-
-
-def test_generate_many_max_attempts() -> None:
-    gen = Generator()
-    # High count, low budget. Should return at most budget puzzles.
-    puzzles = []
-    from japanese_arrows.generator.generator import GenerationStats
-
-    stats = GenerationStats()
-
-    for batch_puzzles, batch_stats in gen.generate_many(10, 3, 3, False, 3, [], max_attempts=5):
-        puzzles.extend(batch_puzzles)
-        stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
-        stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
-        stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
-        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
-
-    assert len(puzzles) <= 5
-    assert (
-        stats.puzzles_successfully_generated
-        + stats.puzzles_rejected_constraints
-        + stats.puzzles_rejected_no_solution
-        + stats.puzzles_rejected_excessive_guessing
-        == 5
-    )

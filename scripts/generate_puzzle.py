@@ -2,7 +2,6 @@ from collections import defaultdict
 
 from japanese_arrows.generator import (
     FollowingArrowsFraction,
-    GenerationStats,
     Generator,
     RuleComplexityFraction,
 )
@@ -27,11 +26,8 @@ def main() -> None:
 
     print(f"Generating a {rows}x{cols} puzzle (max complexity {max_complexity})...")
 
-    puzzles = []
-    stats = GenerationStats()
-
-    generator_iterator = gen.generate_many(
-        max_count=1,
+    puzzles, stats = gen.generate_many(
+        count=1,
         n_jobs=8,
         rows=rows,
         cols=cols,
@@ -39,27 +35,14 @@ def main() -> None:
         max_complexity=max_complexity,
         constraints=constraints,
         prefilled_cells_count=prefilled_cells_count,
-        max_attempts=8,
     )
 
-    for batch_puzzles, batch_stats in generator_iterator:
-        puzzles.extend(batch_puzzles)
-        stats.puzzles_successfully_generated += len(batch_puzzles)
-        stats.puzzles_rejected_constraints += batch_stats.puzzles_rejected_constraints
-        stats.puzzles_rejected_no_solution += batch_stats.puzzles_rejected_no_solution
-        stats.puzzles_rejected_excessive_guessing += batch_stats.puzzles_rejected_excessive_guessing
-        for name, count in batch_stats.rejections_per_constraint.items():
-            stats.rejections_per_constraint[name] = stats.rejections_per_constraint.get(name, 0) + count
-
-        puzzle = None
-        # We can enable early exit if we found enough puzzles,
-        # but for now let's just collect all results as configured by max_count/attempts.
-        if puzzles:
-            print(f"  Found {len(batch_puzzles)} new puzzles (Total: {len(puzzles)})")
-            puzzle = puzzles[0]
-            break
-        else:
-            print("No puzzles generated in this batch.")
+    puzzle = None
+    if puzzles:
+        print(f"  Found {len(puzzles)} new puzzles")
+        puzzle = puzzles[0]
+    else:
+        print("No puzzles generated.")
 
     if not puzzle:
         print("\nCould not generate puzzle within max attempts")
