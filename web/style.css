@@ -322,6 +322,10 @@ body {
     color: var(--text-color);
 }
 
+.cell-value.error {
+    color: var(--error-color);
+}
+
 .pencil-marks {
     position: absolute;
     top: 0;

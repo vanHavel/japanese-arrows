@@ -37,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const modePencilBtn = document.getElementById('mode-pencil');
     const resetBtn = document.getElementById('btn-reset');
     const shareBtn = document.getElementById('btn-share');
+    const checkBtn = document.getElementById('btn-check');
     const toggleGridBtn = document.getElementById('toggle-grid');
     const toast = document.getElementById('toast');
 
@@ -94,6 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     shareBtn.addEventListener('click', shareUrl);
+    checkBtn.addEventListener('click', checkPuzzle);
 
     // Navigation Events
     prevDayBtn.addEventListener('click', () => navigateDay(-1));
@@ -289,6 +291,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     valDiv.className = 'cell-value';
                     valDiv.textContent = stateData.val;
                     if (cellData.initial) valDiv.classList.add('initial');
+                    if (stateData.isError) valDiv.classList.add('error'); // Highlight error
                     cell.appendChild(valDiv);
                 } else {
                     // Draw Pencil Marks
@@ -427,8 +430,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Set value, clear marks
                 userState.grid[r][c].val = val;
                 userState.grid[r][c].marks.clear();
-
-                checkCompletion();
+                // Clear error state on new input
+                if (userState.grid[r][c].isError) {
+                    userState.grid[r][c].isError = false;
+                }
             } else {
                 // Toggle mark
                 if (userState.grid[r][c].marks.has(val)) {
@@ -440,6 +445,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // If value exists, pencil marks are usually hidden or disabled.
                 // Let's clear value if adding marks to avoid confusion.
                 userState.grid[r][c].val = null;
+                userState.grid[r][c].isError = false; // Clear error
             }
         }
         renderGrid();
@@ -450,31 +456,46 @@ document.addEventListener('DOMContentLoaded', () => {
         renderGrid();
     }
 
-    function checkCompletion() {
-        // Check if all cells filled
+    function checkPuzzle() {
+        // Check manually triggered
         let full = true;
-        let correct = true;
+        let incorrectFound = false;
+        let correctCount = 0;
+        let totalCells = puzzle.rows * puzzle.cols;
+
+        // Reset previous errors
+        for (let r = 0; r < puzzle.rows; r++) {
+            for (let c = 0; c < puzzle.cols; c++) {
+                if (userState.grid[r][c].isError) {
+                    userState.grid[r][c].isError = false;
+                }
+            }
+        }
 
         for (let r = 0; r < puzzle.rows; r++) {
             for (let c = 0; c < puzzle.cols; c++) {
                 const val = userState.grid[r][c].val;
                 if (val === null) {
                     full = false;
-                    break;
-                }
-                if (String(val) !== String(solution[r][c])) {
-                    correct = false;
+                } else {
+                    if (String(val) !== String(solution[r][c])) {
+                        incorrectFound = true;
+                        userState.grid[r][c].isError = true;
+                    } else {
+                        correctCount++;
+                    }
                 }
             }
         }
 
-        if (full) {
-            if (correct) {
-                setTimeout(() => alert('Congratulations! Puzzle Solved!'), 100);
-            } else {
-                // Optional: Visual feedback for error?
-                setTimeout(() => alert('Keep trying! Something is not quite right.'), 100);
-            }
+        renderGrid();
+
+        if (incorrectFound) {
+            alert('Some answers are incorrect. They have been highlighted.');
+        } else if (!full) {
+            alert('The puzzle is incomplete, but all filled numbers are correct so far!');
+        } else {
+            alert('Congratulations! Puzzle Solved!');
         }
     }
 
