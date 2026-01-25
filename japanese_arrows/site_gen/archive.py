@@ -4,22 +4,21 @@ from typing import Any, Dict, List
 
 import yaml
 
-PUZZLES_DIR = Path("web/puzzles")
-OUTPUT_FILE = Path("web/assets/puzzles.json")
+DEFAULT_PUZZLES_DIR = Path("web/puzzles")
+DEFAULT_OUTPUT_FILE = Path("web/assets/puzzles.json")
 
 
-def main() -> None:
+def build_puzzle_archive(puzzles_dir: Path = DEFAULT_PUZZLES_DIR, output_file: Path = DEFAULT_OUTPUT_FILE) -> None:
     puzzles: List[Dict[str, Any]] = []
 
-    # Walk through the directory structure
-    # Expected: web/puzzles/YYYY/MM/DD/metadata.yaml
-
-    if not PUZZLES_DIR.exists():
-        print(f"Directory {PUZZLES_DIR} does not exist.")
+    if not puzzles_dir.exists():
+        print(f"Directory {puzzles_dir} does not exist.")
         return
 
+    print(f"Building archive from {puzzles_dir}...")
+
     # Using rglob to find all metadata.yaml files
-    for metadata_file in PUZZLES_DIR.rglob("metadata.yaml"):
+    for metadata_file in puzzles_dir.rglob("metadata.yaml"):
         # Parent structure should be .../YYYY/MM/DD
         day_dir = metadata_file.parent
         month_dir = day_dir.parent
@@ -58,13 +57,10 @@ def main() -> None:
     puzzles.sort(key=lambda x: x["date"], reverse=True)
 
     # Ensure output directory exists
-    OUTPUT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    if not output_file.parent.exists():
+        output_file.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(OUTPUT_FILE, "w", encoding="utf-8") as f:
+    with open(output_file, "w", encoding="utf-8") as f:
         json.dump(puzzles, f, indent=2)
 
-    print(f"Built archive with {len(puzzles)} puzzles at {OUTPUT_FILE}")
-
-
-if __name__ == "__main__":
-    main()
+    print(f"Built archive with {len(puzzles)} puzzles at {output_file}")

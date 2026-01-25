@@ -1,13 +1,13 @@
 import math
-import os
+from pathlib import Path
 
 from japanese_arrows.models import Direction
 
-OUTPUT_DIR = "web/assets/arrows"
+DEFAULT_ASSETS_DIR = Path("web/assets/arrows")
 CELL_SIZE = 120
 
 
-def generate_arrow_svg(direction: Direction, filename: str) -> None:
+def generate_arrow_svg(direction: Direction, output_dir: Path) -> None:
     width = CELL_SIZE
     height = CELL_SIZE
     cx = width / 2
@@ -19,10 +19,6 @@ def generate_arrow_svg(direction: Direction, filename: str) -> None:
     angle_deg = math.degrees(angle_rad)
 
     # Updated Arrow Shape for less whitespace
-    # Tail from -45 to 20. Width +/- 28 (total 56).
-    # Head from 20 to 55. Width +/- 48 (total 96) at base.
-
-    # We essentially wrap the single arrow in an SVG
     lines = [
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         f'<g transform="translate({cx},{cy})">',
@@ -34,23 +30,16 @@ def generate_arrow_svg(direction: Direction, filename: str) -> None:
         "</svg>",
     ]
 
-    with open(os.path.join(OUTPUT_DIR, filename), "w", encoding="utf-8") as f:
+    filename = f"arrow_{direction.name}.svg"
+    with open(output_dir / filename, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
 
-    print(f"Generated {filename}")
 
+def generate_all_arrow_assets(output_dir: Path = DEFAULT_ASSETS_DIR) -> None:
+    if not output_dir.exists():
+        output_dir.mkdir(parents=True, exist_ok=True)
 
-def main() -> None:
-    if not os.path.exists(OUTPUT_DIR):
-        os.makedirs(OUTPUT_DIR)
-
+    print(f"Generating arrow assets in {output_dir}...")
     for d in Direction:
-        # e.g. NORTH -> arrow_NORTH.svg
-        # But wait, the frontend has unicode characters.
-        # I should probably use the direction name in the filename.
-        filename = f"arrow_{d.name}.svg"
-        generate_arrow_svg(d, filename)
-
-
-if __name__ == "__main__":
-    main()
+        generate_arrow_svg(d, output_dir)
+    print("Done generating assets.")
