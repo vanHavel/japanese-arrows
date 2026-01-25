@@ -1,0 +1,137 @@
+.about-content {
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    color: var(--text-color);
+    font-family: 'Inter', sans-serif;
+}
+
+.about-content h1,
+.about-content h2,
+.about-content h3 {
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    font-family: 'Noto Serif JP', serif;
+}
+
+.about-content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 2rem;
+    text-align: center;
+}
+
+.about-content section {
+    margin-bottom: 3rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 1rem;
+}
+
+.about-content section:last-child {
+    border-bottom: none;
+}
+
+.about-content p {
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.about-content ul {
+    margin-bottom: 1.5rem;
+    padding-left: 2rem;
+    color: var(--text-color);
+}
+
+.about-content li {
+    margin-bottom: 0.75rem;
+    font-size: 1.1rem;
+    line-height: 1.6;
+}
+
+.example-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+    margin: 2rem 0;
+    padding: 3rem 2rem;
+    background: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: var(--shadow-sm);
+}
+
+.example-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 60px);
+    grid-template-rows: repeat(4, 60px);
+    gap: 0;
+    background-color: var(--cell-border);
+    border: 2px solid var(--cell-border);
+    width: fit-content;
+    box-shadow: var(--shadow-md);
+}
+
+.example-cell {
+    width: 60px;
+    height: 60px;
+    background-color: white;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+/* Number on top of arrow */
+.example-cell span {
+    z-index: 2;
+    color: var(--primary-color);
+    font-weight: 800;
+    font-size: 1.6rem;
+    text-shadow: 0 0 3px #fff, 0 0 3px #fff;
+    pointer-events: none;
+}
+
+.arrow-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1;
+}
+
+.arrow-bg img {
+    width: 90%;
+    height: 90%;
+    opacity: 0.8;
+}
+
+.example-row {
+    display: flex;
+    gap: 4rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.example-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+}
+
+.example-column h4 {
+    margin: 0;
+    color: var(--secondary-color);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-size: 0.9rem;
+}

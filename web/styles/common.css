@@ -1,0 +1,276 @@
+:root {
+    --bg-color: #fcfaf7;
+    /* Warmer, paper-like background */
+    --text-color: #2c3e50;
+    --primary-color: #4a6741;
+    /* Calm moss green */
+    --primary-hover: #3a5234;
+    --secondary-color: #7f8c8d;
+    --border-color: #e0d7c6;
+    /* Softer border */
+    --grid-bg: #ffffff;
+    --cell-border: #555;
+    /* More like charcoal */
+    --arrow-color: #333;
+    /* Pure ink */
+    --selection-color: rgba(74, 103, 65, 0.05);
+    --input-color: #4a6741;
+    --error-color: #c0392b;
+    --success-color: #27ae60;
+    --pencil-color: #95a5a6;
+    --modal-backdrop: rgba(0, 0, 0, 0.5);
+    --btn-bg: #ffffff;
+    --btn-hover: #f4eee1;
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+kbd {
+    background-color: #eee;
+    border-radius: 3px;
+    border: 1px solid #b4b4b4;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.2), 0 2px 0 0 rgba(255, 255, 255, 0.7) inset;
+    color: #333;
+    display: inline-block;
+    font-size: 0.85em;
+    font-weight: 700;
+    line-height: 1;
+    padding: 2px 4px;
+    white-space: nowrap;
+    font-family: 'Inter', sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    line-height: 1.5;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Navbar */
+.navbar {
+    background-color: #fff;
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.6rem 0;
+    /* Reduced padding */
+    box-shadow: var(--shadow-sm);
+}
+
+.nav-content {
+    max-width: 1200px;
+    /* Increased for instructions */
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.nav-instructions {
+    flex: 1;
+    text-align: center;
+    color: var(--text-color);
+    font-family: 'Noto Serif JP', serif;
+    font-size: 0.95rem;
+    line-height: 1.3;
+    font-weight: 400;
+    font-style: italic;
+    opacity: 0.8;
+    margin: 0 1rem;
+}
+
+@media (max-width: 900px) {
+    .nav-instructions {
+        display: none;
+        /* Hide on smaller screens */
+    }
+}
+
+.logo {
+    font-family: 'Noto Serif JP', serif;
+    font-weight: 600;
+    font-size: 1.5rem;
+    color: var(--text-color);
+    letter-spacing: 0.05em;
+    padding: 0.2rem 1rem;
+    border: 2px solid var(--text-color);
+    position: relative;
+}
+
+.logo::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    right: -6px;
+    width: 10px;
+    height: 10px;
+    background: var(--error-color);
+    /* Zen seal hanko-style */
+    border-radius: 2px;
+    /* Slightly rounded square for a hanko feel */
+    opacity: 0.9;
+}
+
+.nav-links a {
+    text-decoration: none;
+    color: var(--secondary-color);
+    margin-left: 1.5rem;
+    font-weight: 500;
+    transition: color 0.2s;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--primary-color);
+}
+
+/* Main Container */
+.container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* Common Components */
+.difficulty-badge {
+    font-size: 0.9rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-weight: 500;
+    display: inline-block;
+}
+
+.difficulty-badge.diff-normal {
+    background-color: #f1f5f0;
+    color: #4a6741;
+    border: 1px solid #d8e6d1;
+}
+
+.difficulty-badge.diff-hard {
+    background-color: #fdfaf0;
+    color: #8a6d3b;
+    border: 1px solid #f1e6c9;
+}
+
+.difficulty-badge.diff-devious {
+    background-color: #fcf4f4;
+    color: #a94442;
+    border: 1px solid #f2dede;
+}
+
+.badge {
+    font-size: 0.85rem;
+    padding: 0.25rem 0.75rem;
+}
+
+.nav-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text-color);
+    padding: 0.5rem;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.nav-btn:hover:not(:disabled) {
+    background-color: var(--border-color);
+}
+
+.nav-btn:disabled {
+    color: var(--secondary-color);
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* Toast */
+.toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #333;
+    color: #fff;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    opacity: 1;
+    transition: opacity 0.3s;
+    z-index: 1000;
+    pointer-events: none;
+}
+
+.toast.hidden {
+    opacity: 0;
+}
+
+/* Modal */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--modal-backdrop);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+    opacity: 1;
+    transition: opacity 0.2s;
+    backdrop-filter: blur(2px);
+}
+
+.modal.hidden {
+    opacity: 0;
+    pointer-events: none;
+}
+
+.modal-content {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: var(--shadow-md);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+    transform: scale(1);
+    transition: transform 0.2s;
+}
+
+.modal.hidden .modal-content {
+    transform: scale(0.95);
+}
+
+.modal h3 {
+    margin-bottom: 1rem;
+    color: var(--text-color);
+}
+
+.modal p {
+    color: var(--secondary-color);
+    margin-bottom: 2rem;
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+}
+
+.hidden {
+    display: none !important;
+}
