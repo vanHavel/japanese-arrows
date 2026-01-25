@@ -1,9 +1,20 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Constants
-    const PUZZLE_DATE_PATH = '/puzzles/2026/01/25'; // Fixed for v1
+    const DEFAULT_DATE = '2026-01-25'; // Default to today/latest
+    const MIN_DATE = '2026-01-24'; // Earliest available puzzle
+
+    // Determine MAX_DATE dynamically based on user's today, clamped to the latest known puzzle date if we want strictly served puzzles.
+    // However, the user said "Max date can be based on today". So we'll use today's date.
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0');
+    const dd = String(today.getDate()).padStart(2, '0');
+    const MAX_DATE = `${yyyy}-${mm}-${dd}`;
+
     const GRID_SIZE = 500; // Max width in px
 
     // State
+    let currentDate = new URLSearchParams(window.location.search).get('date') || DEFAULT_DATE;
     let puzzle = {
         rows: 0,
         cols: 0,
@@ -29,12 +40,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const toggleGridBtn = document.getElementById('toggle-grid');
     const toast = document.getElementById('toast');
 
+    // Navigation Elements
+    const prevDayBtn = document.getElementById('prev-day');
+    const nextDayBtn = document.getElementById('next-day');
+    const currentDateDisplay = document.getElementById('current-date');
+
     // Modal Elements
     const resetModal = document.getElementById('reset-modal');
     const btnCancelReset = document.getElementById('btn-cancel-reset');
     const btnConfirmReset = document.getElementById('btn-confirm-reset');
 
     // Initialization
+    initNavigation();
     loadPuzzle();
 
     // Event Listeners
@@ -43,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     toggleGridBtn.addEventListener('click', () => {
         puzzleGrid.classList.toggle('show-grid');
-        toggleGridBtn.classList.toggle('active'); // Optional: style active state
+        toggleGridBtn.classList.toggle('active');
     });
 
     document.addEventListener('keydown', handleKeyDown);
@@ -78,16 +95,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
     shareBtn.addEventListener('click', shareUrl);
 
+    // Navigation Events
+    prevDayBtn.addEventListener('click', () => navigateDay(-1));
+    nextDayBtn.addEventListener('click', () => navigateDay(1));
+
     // Functions
+
+    function initNavigation() {
+        updateDateDisplay();
+        updateNavigationButtons();
+    }
+
+    function updateDateDisplay() {
+        const dateObj = new Date(currentDate);
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        currentDateDisplay.textContent = dateObj.toLocaleDateString('en-US', options);
+    }
+
+    function updateNavigationButtons() {
+        prevDayBtn.disabled = currentDate <= MIN_DATE;
+        nextDayBtn.disabled = currentDate >= MAX_DATE;
+    }
+
+    function navigateDay(delta) {
+        const dateObj = new Date(currentDate);
+        dateObj.setDate(dateObj.getDate() + delta);
+
+        const y = dateObj.getFullYear();
+        const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+        const d = String(dateObj.getDate()).padStart(2, '0');
+
+        currentDate = `${y}-${m}-${d}`;
+
+        // Update URL without reload
+        const newUrl = `${window.location.pathname}?date=${currentDate}`;
+        window.history.pushState({ path: newUrl }, '', newUrl);
+
+        updateDateDisplay();
+        updateNavigationButtons();
+        loadPuzzle();
+    }
 
     async function loadPuzzle() {
         try {
+            // Construct path from currentDate
+            const [y, m, d] = currentDate.split('-');
+            const path = `/puzzles/${y}/${m}/${d}`;
+
+            // Clear current grid to avoid artifacts during load
+            puzzleGrid.innerHTML = '<div style="grid-column: 1/-1; text-align: center; padding: 2rem;">Loading...</div>';
+
             // Fetch puzzle.txt
-            const puzzleRes = await fetch(`${PUZZLE_DATE_PATH}/puzzle.txt`);
+            const puzzleRes = await fetch(`${path}/puzzle.txt`);
+            if (!puzzleRes.ok) throw new Error('Puzzle not found');
             const puzzleText = await puzzleRes.text();
 
             // Fetch solution.txt
-            const solutionRes = await fetch(`${PUZZLE_DATE_PATH}/solution.txt`);
+            const solutionRes = await fetch(`${path}/solution.txt`);
+            if (!solutionRes.ok) throw new Error('Solution not found');
             const solutionText = await solutionRes.text();
 
             parsePuzzle(puzzleText);
@@ -97,7 +162,11 @@ document.addEventListener('DOMContentLoaded', () => {
             renderGrid();
         } catch (err) {
             console.error('Failed to load puzzle', err);
-            alert('Error loading puzzle data.');
+            puzzleGrid.innerHTML = `
+                <div style="grid-column: 1/-1; text-align: center; padding: 2rem; color: var(--error-color);">
+                    <h3>No Puzzle Found</h3>
+                    <p>There is no puzzle available for ${currentDate}.</p>
+                </div>`;
         }
     }
 

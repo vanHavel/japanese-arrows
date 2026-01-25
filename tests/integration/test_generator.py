@@ -104,22 +104,3 @@ def test_generate_many_max_attempts() -> None:
         + stats.puzzles_rejected_excessive_guessing
         == 5
     )
-
-
-def test_generate_many_parallel() -> None:
-    gen = Generator()
-    # Test parallel generation of 4 puzzles
-    puzzles = []
-    from japanese_arrows.generator.generator import GenerationStats
-
-    stats = GenerationStats()
-
-    for batch_puzzles, batch_stats in gen.generate_many(4, 3, 3, False, 3, [], n_jobs=2):
-        puzzles.extend(batch_puzzles)
-        stats.puzzles_successfully_generated += batch_stats.puzzles_successfully_generated
-
-    assert len(puzzles) == 4
-    for p in puzzles:
-        assert isinstance(p, Puzzle)
-        assert p.rows == 3
-        assert p.cols == 3

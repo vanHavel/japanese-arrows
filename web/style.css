@@ -133,12 +133,20 @@ body {
 }
 
 /* Controls */
-.left-controls,
-.right-controls {
+.left-controls {
     display: flex;
     flex-direction: column;
     gap: 1rem;
     width: 160px;
+}
+
+.right-controls {
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+    justify-content: center;
+    width: 100%;
+    margin-top: 1rem;
 }
 
 /* Numpad */
@@ -236,13 +244,15 @@ body {
     /* Grid template defined in JS based on puzzle size */
     background-color: var(--cell-border);
     gap: 0;
+    /* Always 0 gap to prevent layout shift */
     border: 2px solid var(--cell-border);
     user-select: none;
     box-shadow: var(--shadow-md);
 }
 
+/* Grid lines are now handled by cell borders to avoid layout shift */
 .puzzle-grid.show-grid {
-    gap: 2px;
+    /* No gap change needed here */
 }
 
 .cell {
@@ -253,9 +263,16 @@ body {
     position: relative;
     cursor: pointer;
     aspect-ratio: 1;
-    width: 60px;
+    width: 80px;
     /* Base size, can be adjust */
-    height: 60px;
+    height: 80px;
+    /* Always have a border to reserve space, transparent by default */
+    border: 1px solid transparent;
+}
+
+.puzzle-grid.show-grid .cell {
+    border: 1px solid var(--cell-border);
+    /* Show grid lines by making cell borders visible */
 }
 
 .cell.selected {
@@ -281,18 +298,24 @@ body {
 
 /* SVG styling for arrows */
 .arrow img {
-    width: 80%;
+    width: 90%;
     /* Adjust as needed */
-    height: 80%;
+    height: 90%;
     object-fit: contain;
 }
 
 .cell-value {
     position: absolute;
     font-size: 1.5rem;
+    /* Reverted size */
+    /* Increased size for better visibility */
     font-weight: 700;
-    z-index: 2;
+    z-index: 10;
+    /* Keep valid z-index */
+    /* Ensure on top of arrow */
     color: var(--primary-color);
+    pointer-events: none;
+    /* Allow clicks to pass through to the cell */
 }
 
 .cell-value.initial {
@@ -310,10 +333,15 @@ body {
     grid-template-rows: repeat(3, 1fr);
     padding: 2px;
     pointer-events: none;
+    z-index: 2;
+    /* Ensure above arrows */
 }
 
 .pencil-mark {
-    font-size: 0.7rem;
+    font-size: 1rem;
+    /* Increased size */
+    font-weight: 600;
+    /* Bold for readability */
     color: var(--pencil-color);
     display: flex;
     justify-content: center;
@@ -441,15 +469,28 @@ body {
 }
 
 /* Responsive */
+/* .center-column to hold grid and right-controls */
+.center-column {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Responsive */
 @media (max-width: 768px) {
     .game-container {
         flex-direction: column;
         align-items: center;
     }
 
-    .left-controls,
-    .right-controls {
+    .left-controls {
         flex-direction: row;
+        width: 100%;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+
+    .right-controls {
         width: 100%;
         justify-content: center;
         flex-wrap: wrap;
@@ -467,9 +508,5 @@ body {
         display: grid;
         order: 2;
         /* Put below puzzle */
-    }
-
-    .right-controls {
-        order: 3;
     }
 }
