@@ -53,6 +53,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnCancelReset = document.getElementById('btn-cancel-reset');
     const btnConfirmReset = document.getElementById('btn-confirm-reset');
 
+    const numpadModal = document.getElementById('numpad-modal');
+    const btnCloseNumpad = document.getElementById('btn-close-numpad');
+    const mobileNumBtns = document.querySelectorAll('.mobile-num-btn');
+
     // Initialization
     initNavigation();
     loadPuzzle();
@@ -94,6 +98,25 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === resetModal) {
             resetModal.classList.add('hidden');
         }
+    });
+
+    // Mobile Numpad Events
+    btnCloseNumpad.addEventListener('click', closeNumpadModal);
+    numpadModal.addEventListener('click', (e) => {
+        if (e.target === numpadModal) closeNumpadModal();
+    });
+
+    mobileNumBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            // For delete button which doesn't have .num-btn class
+            const val = btn.getAttribute('data-value');
+            if (val === 'delete') {
+                inputNumber(null);
+            }
+            // For numbers, the generic .num-btn listener handles input
+            // We just need to close the modal
+            closeNumpadModal();
+        });
     });
 
     shareBtn.addEventListener('click', shareUrl);
@@ -378,6 +401,17 @@ document.addEventListener('DOMContentLoaded', () => {
     function selectCell(r, c) {
         userState.selected = { r, c };
         renderGrid();
+
+        // Only open numpad modal on touch devices
+        if (window.matchMedia("(pointer: coarse)").matches) {
+            // Only if editable
+            if (!puzzle.grid[r][c].initial) {
+                // Find the cell element to position the modal
+                const cells = puzzleGrid.querySelectorAll('.cell');
+                const cellElement = cells[r * puzzle.cols + c];
+                openNumpadModal(cellElement);
+            }
+        }
     }
 
     function setMode(mode) {
@@ -552,6 +586,34 @@ document.addEventListener('DOMContentLoaded', () => {
                 toast.classList.add('hidden');
             }, 2000);
         });
+    }
+
+    function openNumpadModal(anchorElement) {
+        const modalContent = numpadModal.querySelector('.modal-content');
+        numpadModal.classList.remove('hidden');
+
+        if (anchorElement) {
+            const rect = anchorElement.getBoundingClientRect();
+            const modalRect = modalContent.getBoundingClientRect();
+
+            // Calculate position: try to center it near the cell
+            let top = rect.top + rect.height / 2 - modalRect.height / 2;
+            let left = rect.left + rect.width / 2 - modalRect.width / 2;
+
+            // Constrain to viewport
+            const padding = 10;
+            top = Math.max(padding, Math.min(top, window.innerHeight - modalRect.height - padding));
+            left = Math.max(padding, Math.min(left, window.innerWidth - modalRect.width - padding));
+
+            modalContent.style.position = 'fixed';
+            modalContent.style.top = `${top}px`;
+            modalContent.style.left = `${left}px`;
+            modalContent.style.margin = '0';
+        }
+    }
+
+    function closeNumpadModal() {
+        numpadModal.classList.add('hidden');
     }
 
 });

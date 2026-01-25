@@ -18,6 +18,7 @@
     --error-color: #c0392b;
     --success-color: #27ae60;
     --pencil-color: #95a5a6;
+    --modal-backdrop: rgba(0, 0, 0, 0.5);
     --btn-bg: #ffffff;
     --btn-hover: #f4eee1;
     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
@@ -545,7 +546,7 @@ body {
     left: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 0, 0, 0.5);
+    background: var(--modal-backdrop);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -741,13 +742,15 @@ body {
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1024px),
+(pointer: coarse) {
     .game-container {
         flex-direction: column;
         align-items: center;
     }
 
     .left-controls {
+        margin-top: 0 !important;
         flex-direction: row;
         width: 100%;
         justify-content: center;
@@ -759,18 +762,49 @@ body {
         justify-content: center;
         flex-wrap: wrap;
     }
+}
 
-    .numpad {
-        /* On mobile, maybe show numpad below puzzle or make it horizontal? 
-           For now keep it but layout might be cramped. */
+/* Only hide side numpad on touch devices which use the popup modal */
+@media (pointer: coarse) {
+    .left-controls .numpad {
         display: none;
-        /* Hide onscreen numpad on mobile to rely on keyboard/inputs? Or adapt it */
     }
+}
 
-    /* Simple mobile adaptation: show mode toggles and puzzle */
-    .numpad {
-        display: grid;
-        order: 2;
-        /* Put below puzzle */
-    }
+/* Numpad in Modal */
+.popup-numpad {
+    border: none;
+    box-shadow: none;
+    padding: 0;
+    background: transparent;
+}
+
+.numpad-modal-content {
+    max-width: 260px;
+    padding: 1rem;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+#numpad-modal {
+    background: transparent;
+    backdrop-filter: none;
+}
+
+#numpad-modal .modal-content {
+    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+}
+
+.mobile-num-btn {
+    font-size: 1rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.8);
+}
+
+#btn-close-numpad {
+    margin-top: 0.75rem !important;
+    padding: 0.5rem;
+    font-size: 0.9rem;
 }

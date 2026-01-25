@@ -8,7 +8,8 @@ The code is separated into html, css and js files in the web/ folder.
 The index page shows the puzzle view for the current day.
 The /puzzles/YYYY/MM/DD/ page shows the puzzle view for a specific day.
 The /archive page shows the archive view.
-There is a nav bar at the top for Home and Archive.
+The /about page shows the about view.
+There is a nav bar at the top for Home and Archive and About.
 
 # Puzzle View
 The puzzle View shows the current day's puzzle opened in the editor widget.
