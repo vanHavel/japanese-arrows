@@ -22,8 +22,8 @@ class GenerationStats:
 
 class Generator:
     OUTWARD_ARROWS_THRESHOLD = 0.1
-    MAX_MODIFICATIONS = 3
-    MAX_GUESSES_FRACTION = 0.25
+    MAX_MODIFICATIONS_FRACTION = 0.1
+    MAX_GUESSES_FRACTION = 0.15
 
     def generate(
         self,
@@ -140,7 +140,10 @@ class Generator:
                     # Continue inner loop
 
                 else:
-                    if modifications < self.MAX_MODIFICATIONS and trace.contradiction_location is not None:
+                    import math
+
+                    max_modifications = max(math.ceil(rows * cols * self.MAX_MODIFICATIONS_FRACTION), 3)
+                    if modifications < max_modifications and trace.contradiction_location is not None:
                         # Contradiction found, try to rotate the arrow at the contradiction
                         r, c = trace.contradiction_location
 

@@ -6,3 +6,6 @@ japanese_arrows:
 - parser.py: parses rules from yaml file
 - type_checking.py: type checking for rules
 - io.py: puzzle io
+- generator:
+  - generator.py: logic for creating new puzzles
+  - constraints.py: validation rules for generated puzzles
