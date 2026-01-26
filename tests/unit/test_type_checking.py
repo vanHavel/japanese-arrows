@@ -1,11 +1,7 @@
 import pytest
 
 from japanese_arrows.rules import (
-    Calculation,
-    ConclusionConstant,
-    ConclusionVariable,
-    ConditionConstant,
-    ConditionVariable,
+    Constant,
     Equality,
     ExistsNumber,
     ExistsPosition,
@@ -15,6 +11,7 @@ from japanese_arrows.rules import (
     Not,
     Relation,
     SetVal,
+    Variable,
 )
 from japanese_arrows.type_checking import FunctionSignature, RelationSignature, Type, check_condition, check_rule
 
@@ -53,8 +50,8 @@ def test_valid_formulas(
 
     # Exists p1, p2: eq_pos(p1, p2)
     f1 = ExistsPosition(
-        [ConditionVariable("p1"), ConditionVariable("p2")],
-        Relation("eq_pos", [ConditionVariable("p1"), ConditionVariable("p2")]),
+        [Variable("p1"), Variable("p2")],
+        Relation("eq_pos", [Variable("p1"), Variable("p2")]),
     )
     check_condition(f1, constants, functions, relations)
 
@@ -63,9 +60,7 @@ def test_valid_formulas(
     check_condition(f2, constants, functions, relations)
 
     # valid Equality (Position = Position)
-    f3 = ExistsPosition(
-        [ConditionVariable("q1"), ConditionVariable("q2")], Equality(ConditionVariable("q1"), ConditionVariable("q2"))
-    )
+    f3 = ExistsPosition([Variable("q1"), Variable("q2")], Equality(Variable("q1"), Variable("q2")))
     check_condition(f3, constants, functions, relations)
 
 
@@ -76,8 +71,8 @@ def test_invalid_relation_argument_type(
 
     # eq_pos expects (Position, Position), giving (Position, Number)
     f = ExistsPosition(
-        [ConditionVariable("p")],
-        ExistsNumber([ConditionVariable("n")], Relation("eq_pos", [ConditionVariable("p"), ConditionVariable("n")])),
+        [Variable("p")],
+        ExistsNumber([Variable("n")], Relation("eq_pos", [Variable("p"), Variable("n")])),
     )
     with pytest.raises(TypeError, match="Argument 2 of 'eq_pos' must be Position"):
         check_condition(f, constants, functions, relations)
@@ -90,8 +85,8 @@ def test_equality_types(
 
     # Mismatch: Position = Number
     f_bad = ExistsPosition(
-        [ConditionVariable("p")],
-        ExistsNumber([ConditionVariable("n")], Equality(ConditionVariable("p"), ConditionVariable("n"))),
+        [Variable("p")],
+        ExistsNumber([Variable("n")], Equality(Variable("p"), Variable("n"))),
     )
     with pytest.raises(TypeError, match="Equality mismatch"):
         check_condition(f_bad, constants, functions, relations)
@@ -101,7 +96,7 @@ def test_undefined_variable(
     type_context: tuple[dict[str, Type], dict[str, FunctionSignature], dict[str, RelationSignature]],
 ) -> None:
     constants, functions, relations = type_context
-    f = Relation("eq_pos", [ConditionVariable("undefined"), ConditionVariable("undefined")])
+    f = Relation("eq_pos", [Variable("undefined"), Variable("undefined")])
     with pytest.raises(TypeError, match="Undefined variable: undefined"):
         check_condition(f, constants, functions, relations)
 
@@ -116,10 +111,10 @@ def test_nested_quantifiers(
     # row(p) is Number
     # n is Number
     f = ForAllPosition(
-        [ConditionVariable("p")],
+        [Variable("p")],
         ExistsNumber(
-            [ConditionVariable("n")],
-            Relation(">", [FunctionCall("row", [ConditionVariable("p")]), ConditionVariable("n")]),
+            [Variable("n")],
+            Relation(">", [FunctionCall("row", [Variable("p")]), Variable("n")]),
         ),
     )
     check_condition(f, constants, functions, relations)
@@ -132,11 +127,11 @@ def test_constants_type_check(
     # OOB is Position, ZERO is Number
 
     # Valid: eq_pos(OOB, OOB)
-    f1 = Relation("eq_pos", [ConditionConstant("OOB"), ConditionConstant("OOB")])
+    f1 = Relation("eq_pos", [Constant("OOB"), Constant("OOB")])
     check_condition(f1, constants, functions, relations)
 
     # Invalid: eq_pos(OOB, ZERO)
-    f2 = Relation("eq_pos", [ConditionConstant("OOB"), ConditionConstant("ZERO")])
+    f2 = Relation("eq_pos", [Constant("OOB"), Constant("ZERO")])
     with pytest.raises(TypeError, match="Argument 2 of 'eq_pos' must be Position"):
         check_condition(f2, constants, functions, relations)
 
@@ -148,15 +143,15 @@ def test_check_rule_valid(
 
     # Rule: Exists p (row(p) > ZERO) -> set(p, 5)
     # Condition
-    p = ConditionVariable("p")
+    p = Variable("p")
     cond = ExistsPosition(
         [p],
-        Relation(">", [FunctionCall("row", [p]), ConditionConstant("ZERO")]),
+        Relation(">", [FunctionCall("row", [p]), Constant("ZERO")]),
     )
 
     # Conclusion
     # Variable p refers to the p in ExistsPosition
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant(5))
+    concl = SetVal(Variable("p"), Constant(5))
 
     rule = FORule("test-rule", cond, [concl])
     check_rule(rule, constants, functions, relations)
@@ -168,13 +163,13 @@ def test_check_rule_undefined_variable_in_conclusion(
     constants, functions, relations = type_context
 
     # Rule: Exists p (...) -> set(q, 5)  -- q is undefined
-    p = ConditionVariable("p")
+    p = Variable("p")
     cond = ExistsPosition([p], Equality(p, p))  # dummy condition
 
-    concl = SetVal(ConclusionVariable("q"), ConclusionConstant(5))
+    concl = SetVal(Variable("q"), Constant(5))
     rule = FORule("test-rule", cond, [concl])
 
-    with pytest.raises(TypeError, match="Undefined variable in conclusion: q"):
+    with pytest.raises(TypeError, match="Undefined variable: q"):
         check_rule(rule, constants, functions, relations)
 
 
@@ -184,10 +179,10 @@ def test_check_rule_type_mismatch_conclusion(
     constants, functions, relations = type_context
 
     # Rule: Exists p -> set(p, OOB) -- OOB is Position, set expects Number value
-    p = ConditionVariable("p")
+    p = Variable("p")
     cond = ExistsPosition([p], Equality(p, p))
 
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant("OOB"))
+    concl = SetVal(Variable("p"), Constant("OOB"))
     rule = FORule("test-rule", cond, [concl])
 
     with pytest.raises(TypeError, match="SetVal value must be Number, got Position"):
@@ -203,15 +198,19 @@ def test_check_rule_calculation_conclusion(
     # Note: Calculation wrapper for +
     # We need a Calculation object.
 
-    p = ConditionVariable("p")
+    # Rule: Exists p -> set(p, val(p) + 1)
+    # Note: Calculation wrapper for +
+    # We need a Calculation object.
+
+    p = Variable("p")
 
     # Let's test binding in condition:
     # Exists p, n (val(p) = n) -> set(p, n + 1)
 
-    n = ConditionVariable("n")
+    n = Variable("n")
     cond_bind = ExistsPosition([p], ExistsNumber([n], Relation("eq_num", [FunctionCall("val", [p]), n])))
 
-    concl_calc = SetVal(ConclusionVariable("p"), Calculation("+", ConclusionVariable("n"), ConclusionConstant(1)))
+    concl_calc = SetVal(Variable("p"), FunctionCall("+", [Variable("n"), Constant(1)]))
 
     rule = FORule("test-rule", cond_bind, [concl_calc])
     check_rule(rule, constants, functions, relations)
@@ -224,19 +223,21 @@ def test_check_rule_forall_scope_exclusion(
 
     # Rule: Exists p (ForAll q (p = q)) -> set(q, 5)
     # Variable q is bound by ForAll, so it should NOT be available in conclusion.
-    p = ConditionVariable("p")
-    q = ConditionVariable("q")
+    # Rule: Exists p (ForAll q (p = q)) -> set(q, 5)
+    # Variable q is bound by ForAll, so it should NOT be available in conclusion.
+    p = Variable("p")
+    q = Variable("q")
 
     cond = ExistsPosition([p], ForAllPosition([q], Equality(p, q)))
 
-    concl = SetVal(ConclusionVariable("q"), ConclusionConstant(5))
+    concl = SetVal(Variable("q"), Constant(5))
     rule = FORule("test-rule", cond, [concl])
 
-    with pytest.raises(TypeError, match="Undefined variable in conclusion: q"):
+    with pytest.raises(TypeError, match="Undefined variable: q"):
         check_rule(rule, constants, functions, relations)
 
     # However, 'p' should still be available
-    concl_p = SetVal(ConclusionVariable("p"), ConclusionConstant(5))
+    concl_p = SetVal(Variable("p"), Constant(5))
     rule_p = FORule("test-rule", cond, [concl_p])
     check_rule(rule_p, constants, functions, relations)
 

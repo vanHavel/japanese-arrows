@@ -1,15 +1,13 @@
 from japanese_arrows.models import Cell, Direction, Puzzle
 from japanese_arrows.rules import (
     BacktrackRule,
-    ConclusionConstant,
-    ConclusionVariable,
-    ConditionConstant,
-    ConditionVariable,
+    Constant,
     Equality,
     ExcludeVal,
     ExistsPosition,
     FORule,
     FunctionCall,
+    Variable,
 )
 from japanese_arrows.solver import Solver, SolverStatus
 
@@ -29,10 +27,10 @@ def test_backtrack_rule_application() -> None:
 
     # Rule 1: Suicide rule
     # condition: exists p (val(p)=1)
-    p_var = ConditionVariable("p")
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(1)))
+    p_var = Variable("p")
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant(1)))
     # conclusion: exclude(p, =, 1)
-    concl = ExcludeVal(ConclusionVariable("p"), "=", ConclusionConstant(1))
+    concl = ExcludeVal(Variable("p"), "=", Constant(1))
 
     fo_rules = [FORule(name="suicide_if_one", condition=cond, conclusions=[concl], complexity=1)]
 
@@ -66,6 +64,6 @@ def test_backtrack_rule_application() -> None:
             assert len(step.conclusions_applied) == 1
             c = step.conclusions_applied[0]
             assert isinstance(c, ExcludeVal)
-            assert isinstance(c.value, ConclusionConstant)
+            assert isinstance(c.value, Constant)
             assert c.value.value == 1
     assert found_bt

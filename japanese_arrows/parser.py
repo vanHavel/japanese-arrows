@@ -3,15 +3,8 @@ import re
 from japanese_arrows.rules import (
     And,
     BacktrackRule,
-    Calculation,
     Conclusion,
-    ConclusionConstant,
-    ConclusionTerm,
-    ConclusionVariable,
-    ConditionCalculation,
-    ConditionConstant,
-    ConditionTerm,
-    ConditionVariable,
+    Constant,
     Equality,
     ExcludeVal,
     ExistsNumber,
@@ -27,6 +20,8 @@ from japanese_arrows.rules import (
     Relation,
     Rule,
     SetVal,
+    Term,
+    Variable,
 )
 
 # Regex patterns for tokens
@@ -120,14 +115,14 @@ class RuleParser:
 
         if token.type == "SET":
             self.consume("LPAREN")
-            pos = self.parse_conclusion_term()
+            pos = self.parse_term()
             self.consume("COMMA")
-            val = self.parse_conclusion_term()
+            val = self.parse_term()
             self.consume("RPAREN")
             return SetVal(pos, val)
         elif token.type == "EXCLUDE":
             self.consume("LPAREN")
-            pos = self.parse_conclusion_term()
+            pos = self.parse_term()
             self.consume("COMMA")
 
             # check for operator
@@ -136,47 +131,25 @@ class RuleParser:
                 op_token = self.advance()
                 op = op_token.value
 
-            val = self.parse_conclusion_term()
+            val = self.parse_term()
             self.consume("RPAREN")
             return ExcludeVal(pos, op, val)
         elif token.type == "ONLY":
             self.consume("LPAREN")
-            pos = self.parse_conclusion_term()
+            pos = self.parse_term()
             self.consume("COMMA")
             self.consume("LBRACKET")
             values = []
             if not self.match("RBRACKET"):
-                values.append(self.parse_conclusion_term())
+                values.append(self.parse_term())
                 while self.match("COMMA"):
                     self.consume("COMMA")
-                    values.append(self.parse_conclusion_term())
+                    values.append(self.parse_term())
             self.consume("RBRACKET")
             self.consume("RPAREN")
             return OnlyVal(pos, values)
         else:
             raise ValueError(f"Unknown conclusion type: {token.value}")
-
-    def parse_conclusion_term(self) -> ConclusionTerm:
-        # Handles variables, constants (numbers), and simple arithmetic (term + N, term - N)
-        left = self.parse_conclusion_primary()
-
-        if self.match("PLUS", "MINUS"):
-            op = self.advance().value
-            right = self.parse_conclusion_primary()
-            return Calculation(op, left, right)
-
-        return left
-
-    def parse_conclusion_primary(self) -> ConclusionTerm:
-        if self.match("NUMBER"):
-            return ConclusionConstant(int(self.consume("NUMBER").value))
-        elif self.match("IDENTIFIER"):
-            val = self.consume("IDENTIFIER").value
-            if val in ["OOB", "nil"]:
-                return ConclusionConstant(val)
-            return ConclusionVariable(val)
-        else:
-            raise ValueError(f"Unexpected token in conclusion term: {self.current_token()}")
 
     def parse_formula(self) -> Formula:
         return self.parse_implication()
@@ -243,7 +216,7 @@ class RuleParser:
         # Group consecutive variables of the same type to minimize AST depth
         grouped_quantifiers = []
         current_type = None
-        current_vars: list[ConditionVariable] = []
+        current_vars: list[Variable] = []
 
         for v_name in vars:
             v_type = self._infer_var_type(v_name)
@@ -252,7 +225,7 @@ class RuleParser:
                     grouped_quantifiers.append((current_type, current_vars))
                 current_type = v_type
                 current_vars = []
-            current_vars.append(ConditionVariable(v_name))
+            current_vars.append(Variable(v_name))
 
         if current_type is not None:
             grouped_quantifiers.append((current_type, current_vars))
@@ -294,19 +267,19 @@ class RuleParser:
 
         raise ValueError(f"Expected relation or equality, got {left}")
 
-    def parse_term(self) -> ConditionTerm:
+    def parse_term(self) -> Term:
         left = self.parse_term_primary()
 
         while self.match("PLUS", "MINUS"):
             op = self.advance().value
             right = self.parse_term_primary()
-            left = ConditionCalculation(op, left, right)
+            left = FunctionCall(op, [left, right])
 
         return left
 
-    def parse_term_primary(self) -> ConditionTerm:
+    def parse_term_primary(self) -> Term:
         if self.match("NUMBER"):
-            return ConditionConstant(int(self.consume("NUMBER").value))
+            return Constant(int(self.consume("NUMBER").value))
 
         name_token = self.consume("IDENTIFIER")
         name = name_token.value
@@ -323,9 +296,9 @@ class RuleParser:
             return FunctionCall(name, args)
 
         if name in ["OOB", "nil"]:
-            return ConditionConstant(name)
+            return Constant(name)
 
-        return ConditionVariable(name)
+        return Variable(name)
 
     def _infer_var_type(self, name: str) -> str:
         # p,q,r... are Position, i,j,k... are Number
@@ -413,9 +386,9 @@ def parse_rule(rule_dict: dict[str, object]) -> Rule:
             condition_parser = RuleParser(condition_str)
             condition = condition_parser.parse_formula()
         else:
-            from japanese_arrows.rules import ConditionConstant, Equality
+            from japanese_arrows.rules import Constant, Equality
 
-            condition = Equality(ConditionConstant(0), ConditionConstant(0))
+            condition = Equality(Constant(0), Constant(0))
 
         conclusions: list[Conclusion] = []
         if isinstance(conclusions_list, list):

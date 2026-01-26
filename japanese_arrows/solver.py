@@ -13,16 +13,14 @@ from japanese_arrows.optimizer import optimize
 from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
     BacktrackRule,
-    Calculation,
     Conclusion,
-    ConclusionConstant,
-    ConclusionTerm,
-    ConclusionVariable,
+    Constant,
     ExcludeVal,
     FORule,
     OnlyVal,
     Rule,
     SetVal,
+    Variable,
 )
 from japanese_arrows.type_checking import Type, check_rule
 from japanese_arrows.universe import Universe
@@ -374,9 +372,7 @@ class Solver:
 
                 if contradiction_found and trace is not None:
                     backtrack_witness = {"p": (r, c)}
-                    conclusion = ExcludeVal(
-                        position=ConclusionVariable("p"), operator="=", value=ConclusionConstant(val)
-                    )
+                    conclusion = ExcludeVal(position=Variable("p"), operator="=", value=Constant(val))
 
                     apply_res, loc = self._apply_conclusion(puzzle, conclusion, backtrack_witness, universe)
 
@@ -450,7 +446,7 @@ class Solver:
         # Heuristic: Try moves? Or just iterate.
         # Simple DFS:
         for rule, witness, conclusion in moves:
-            undo_op = self._apply_conclusion_with_undo(puzzle, conclusion, witness)
+            undo_op = self._apply_conclusion_with_undo(puzzle, conclusion, witness, universe)
 
             if undo_op is None:
                 # No progress
@@ -498,7 +494,7 @@ class Solver:
         witness: dict[str, Any],
         universe: Universe,
     ) -> tuple[ConclusionApplicationResult, tuple[int, int] | None]:
-        p_val = self._eval_conclusion_term(conclusion.position, witness)
+        p_val = universe.eval_term(conclusion.position, witness)
 
         if p_val == "OOB":
             return ConclusionApplicationResult.NO_PROGRESS, None
@@ -518,7 +514,7 @@ class Solver:
         new_candidates = current_candidates.copy()
 
         if isinstance(conclusion, SetVal):
-            val = self._eval_conclusion_term(conclusion.value, witness)
+            val = universe.eval_term(conclusion.value, witness)
             if not isinstance(val, int):
                 cell.candidates = set()
                 cell.number = None
@@ -526,7 +522,7 @@ class Solver:
             new_candidates.intersection_update({val})
 
         elif isinstance(conclusion, ExcludeVal):
-            val = self._eval_conclusion_term(conclusion.value, witness)
+            val = universe.eval_term(conclusion.value, witness)
             if isinstance(val, int):
                 if conclusion.operator == "=":
                     new_candidates.discard(val)
@@ -544,7 +540,7 @@ class Solver:
         elif isinstance(conclusion, OnlyVal):
             allowed = set()
             for v_term in conclusion.values:
-                v = self._eval_conclusion_term(v_term, witness)
+                v = universe.eval_term(v_term, witness)
                 if isinstance(v, int):
                     allowed.add(v)
             new_candidates.intersection_update(allowed)
@@ -563,7 +559,7 @@ class Solver:
         return ConclusionApplicationResult.NO_PROGRESS, None
 
     def _apply_conclusion_with_undo(
-        self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any]
+        self, puzzle: Puzzle, conclusion: Conclusion, witness: dict[str, Any], universe: Universe
     ) -> Callable[[], None] | str | None:
         """
         Applies a conclusion.
@@ -572,7 +568,7 @@ class Solver:
           - "CONTRADICTION" string if a contradiction was found.
           - None if NO_PROGRESS.
         """
-        p_val = self._eval_conclusion_term(conclusion.position, witness)
+        p_val = universe.eval_term(conclusion.position, witness)
         if p_val == "OOB":
             return None
 
@@ -595,13 +591,13 @@ class Solver:
         new_candidates = eff_candidates.copy()
 
         if isinstance(conclusion, SetVal):
-            val = self._eval_conclusion_term(conclusion.value, witness)
+            val = universe.eval_term(conclusion.value, witness)
             if not isinstance(val, int):
                 return "CONTRADICTION"
             new_candidates.intersection_update({val})
 
         elif isinstance(conclusion, ExcludeVal):
-            val = self._eval_conclusion_term(conclusion.value, witness)
+            val = universe.eval_term(conclusion.value, witness)
             if isinstance(val, int):
                 if conclusion.operator == "=":
                     new_candidates.discard(val)
@@ -619,7 +615,7 @@ class Solver:
         elif isinstance(conclusion, OnlyVal):
             allowed = set()
             for v_term in conclusion.values:
-                v = self._eval_conclusion_term(v_term, witness)
+                v = universe.eval_term(v_term, witness)
                 if isinstance(v, int):
                     allowed.add(v)
             new_candidates.intersection_update(allowed)
@@ -644,22 +640,6 @@ class Solver:
             return undo
 
         return None
-
-    def _eval_conclusion_term(self, term: ConclusionTerm, witness: dict[str, Any]) -> Any:
-        if isinstance(term, ConclusionVariable):
-            return witness[term.name]
-        elif isinstance(term, ConclusionConstant):
-            return term.value
-        elif isinstance(term, Calculation):
-            left = self._eval_conclusion_term(term.left, witness)
-            right = self._eval_conclusion_term(term.right, witness)
-            if isinstance(left, int) and isinstance(right, int):
-                if term.operator == "+":
-                    return left + right
-                if term.operator == "-":
-                    return left - right
-            return "nil"
-        raise AssertionError(f"Unknown conclusion term type: {type(term)}")
 
     def _create_universe(
         self,

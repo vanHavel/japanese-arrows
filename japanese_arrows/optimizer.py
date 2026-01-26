@@ -1,9 +1,6 @@
 from japanese_arrows.rules import (
     And,
-    ConditionCalculation,
-    ConditionConstant,
-    ConditionTerm,
-    ConditionVariable,
+    Constant,
     Equality,
     ExistsNumber,
     ExistsPosition,
@@ -14,21 +11,21 @@ from japanese_arrows.rules import (
     Not,
     Or,
     Relation,
+    Term,
+    Variable,
 )
 
 
-def get_free_variables(node: Formula | ConditionTerm) -> set[str]:
-    if isinstance(node, ConditionVariable):
+def get_free_variables(node: Formula | Term) -> set[str]:
+    if isinstance(node, Variable):
         return {node.name}
-    elif isinstance(node, ConditionConstant):
+    elif isinstance(node, Constant):
         return set()
     elif isinstance(node, FunctionCall):
         vars = set()
         for arg in node.args:
             vars.update(get_free_variables(arg))
         return vars
-    elif isinstance(node, ConditionCalculation):
-        return get_free_variables(node.left) | get_free_variables(node.right)
 
     elif isinstance(node, And):
         vars = set()

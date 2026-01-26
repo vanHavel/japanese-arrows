@@ -6,10 +6,7 @@ from typing import Any, Callable
 
 from japanese_arrows.rules import (
     And,
-    ConditionCalculation,
-    ConditionConstant,
-    ConditionTerm,
-    ConditionVariable,
+    Constant,
     Equality,
     ExistsNumber,
     ExistsPosition,
@@ -20,6 +17,8 @@ from japanese_arrows.rules import (
     Not,
     Or,
     Relation,
+    Term,
+    Variable,
 )
 from japanese_arrows.type_checking import Type
 
@@ -104,7 +103,7 @@ class Universe:
                 yield {}
 
             case t if t is Relation:
-                args_values = [self._eval_term(arg, assignment) for arg in phi.args]
+                args_values = [self.eval_term(arg, assignment) for arg in phi.args]
                 if phi.relation not in self.relations:
                     raise ValueError(f"Unknown relation: {phi.relation}")
 
@@ -113,8 +112,8 @@ class Universe:
                     yield {}
 
             case t if t is Equality:
-                left = self._eval_term(phi.left, assignment)
-                right = self._eval_term(phi.right, assignment)
+                left = self.eval_term(phi.left, assignment)
+                right = self.eval_term(phi.right, assignment)
                 if left == right:
                     yield {}
 
@@ -133,32 +132,37 @@ class Universe:
         for w in self._check_all(first, assignment):
             yield from self._check_and(rest, assignment, combined | w)
 
-    def _eval_term(self, term: ConditionTerm, assignment: dict[str, Any]) -> Any:
+    def eval_term(self, term: Term, assignment: dict[str, Any]) -> Any:
         match type(term):
-            case t if t is ConditionVariable:
+            case t if t is Variable:
                 if term.name not in assignment:
                     raise KeyError(f"Variable {term.name} not in assignment")
                 return assignment[term.name]
 
-            case t if t is ConditionConstant:
+            case t if t is Constant:
                 if type(term.value) is str and term.value in self.constants:
                     return self.constants[term.value]
                 return term.value
 
             case t if t is FunctionCall:
+                # Handle arithmetic built-ins
+                if term.name == "+":
+                    op_left = self.eval_term(term.args[0], assignment)
+                    op_right = self.eval_term(term.args[1], assignment)
+                    if type(op_left) is int and type(op_right) is int:
+                        return op_left + op_right
+                    return "nil"
+                if term.name == "-":
+                    op_left = self.eval_term(term.args[0], assignment)
+                    op_right = self.eval_term(term.args[1], assignment)
+                    if type(op_left) is int and type(op_right) is int:
+                        return op_left - op_right
+                    return "nil"
+
                 if term.name not in self.functions:
                     raise ValueError(f"Unknown function: {term.name}")
-                args_values = [self._eval_term(arg, assignment) for arg in term.args]
+                args_values = [self.eval_term(arg, assignment) for arg in term.args]
                 return self.functions[term.name](tuple(args_values))
-
-            case t if t is ConditionCalculation:
-                left = self._eval_term(term.left, assignment)
-                right = self._eval_term(term.right, assignment)
-                if term.operator == "+" and type(left) is int and type(right) is int:
-                    return left + right
-                if term.operator == "-" and type(left) is int and type(right) is int:
-                    return left - right
-                return "nil"
 
             case t:
                 raise ValueError(f"Unknown term type: {t}")

@@ -46,7 +46,7 @@ def main() -> None:
     # --- Configuration ---
     ROWS = 6
     COLS = 6
-    ALLOW_DIAGONALS = True
+    ALLOW_DIAGONALS = False
     MAX_COMPLEXITY = 6
     COUNT = 5
 

@@ -14,111 +14,107 @@
   conclusions:
     - exclude(p, 0)
 - name: GRID_SIZE
-  condition: exists p,i (ahead(p) = i)
+  condition: exists p (val(p) = nil)
   kind: FO
   complexity: 1
   conclusions:
-    - exclude(p, >i)
+    - exclude(p, > ahead(p))
 - name: DIRECTLY_SEEN
-  condition: exists p,i (sees_distinct(p) = i)
+  condition: exists p (val(p) = nil)
   kind: FO
   complexity: 1
   conclusions:
-    - exclude(p, <i)
+    - exclude(p, < sees_distinct(p))
 - name: SEEN_AND_FREE
   condition: |
-    exists p,i,j,k (
-      sees_distinct(p) = i ^
-      ahead_free(p) = j ^
-      k = i + j
-    )
+    exists p (val(p) = nil)
   kind: FO
   complexity: 2
   conclusions:
-    - exclude(p, >k)
+    - exclude(p, > sees_distinct(p) + ahead_free(p))
 - name: NEXT_ARROW_SAME_DIRECTION
   condition: |
-    exists p,q,i (
+    exists p,q (
+      val(q) != nil ^
       next(p) = q ^
-      dir(p) = dir(q) ^
-      val(q) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - only(p, [i, i+1])
+    - only(p, [val(q), val(q)+1])
 - name: NEXT_ARROW_SAME_DIRECTION_VAL_SEEN
   condition: |
-    exists p,q,i (
-      candidate(p, i) ^
+    exists q,p (
+      val(q) != nil ^
+      candidate(p, val(q)) ^
       next(p) = q ^
       dir(p) = dir(q) ^
-      val(q) = i ^
-      exists r (points_at(q, r) ^ val(r) = i)
+      exists r (points_at(q, r) ^ val(r) = val(q))
     )
   kind: FO
   complexity: 2
   conclusions:
-    - set(p, i)
+    - set(p, val(q))
 - name: AHEAD_ARROW_SAME_DIRECTION
   condition: |
-    exists p,q,i (
+    exists q,p (
+      val(q) != nil ^
       points_at(p, q) ^
-      dir(p) = dir(q) ^
-      val(q) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - exclude(p, <i)
+    - exclude(p, < val(q))
 - name: PREVIOUS_ARROW_SAME_DIRECTION
   condition: |
-    exists p,q,i (
+    exists p,q (
+      val(p) != nil ^
       next(p) = q ^
-      dir(p) = dir(q) ^
-      val(p) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - only(q, [i, i-1])
+    - only(q, [val(p), val(p)-1])
 - name: PREVIOUS_ARROW_SAME_DIRECTION_VAL_AHEAD
   condition: |
-    exists p,q,i (
+    exists p,q (
+      val(p) != nil ^
       next(p) = q ^
       dir(p) = dir(q) ^
-      val(p) = i ^
-      exists r (points_at(q, r) ^ val(r) = i-1)
+      exists r (points_at(q, r) ^ val(r) = val(p)-1)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - set(q, i)
+    - set(q, val(p))
 - name: BEFORE_ARROW_SAME_DIRECTION
   condition: |
-    exists p,q,i (
+    exists p,q (
+      val(p) != nil ^
       points_at(p, q) ^
-      dir(p) = dir(q) ^
-      val(p) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - exclude(q, >i)
+    - exclude(q, > val(p))
 - name: TRIPLE_ARROWS_SAME_DIRECTION
   condition: |
-    exists p,q,r,i (
+    exists p,q,r (
+      val(q) != nil ^
       next(p) = q ^
+      val(r) = val(q) ^
       next(q) = r ^
       dir(p) = dir(q) ^
-      dir(q) = dir(r) ^
-      val(q) = i ^
-      val(r) = i
+      dir(q) = dir(r)
     )
   kind: FO
   complexity: 2
   conclusions:
-    - set(p, i)
+    - set(p, val(r))
 - name: UNIQUE_COMMON_CANDIDATE_1
   condition: |
     exists p,q,i (
@@ -132,11 +128,11 @@
   conclusions:
     - set(q, i)
 - name: MAX_CANDIDATES
-  condition: exists p,i (sees_distinct_candidates(p) = i ^ max_candidate(p) > i)
+  condition: exists p (max_candidate(p) > sees_distinct_candidates(p))
   kind: FO
   complexity: 2
   conclusions:
-    - exclude(p, >i)
+    - exclude(p, > sees_distinct_candidates(p))
 - name: ELIMINATE_1
   condition: |
     exists p (
@@ -149,57 +145,53 @@
     - exclude(p, 1)
 - name: NEXT_ARROW_SAME_DIRECTION_MINCANDIDATE
   condition: |
-    exists p,q,i (
+    exists p,q (
       next(p) = q ^
-      dir(p) = dir(q) ^
-      min_candidate(q) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(p, <i)
+    - exclude(p, < min_candidate(q))
 - name: NEXT_ARROW_SAME_DIRECTION_MAXCANDIDATE
   condition: |
-    exists p,q,i (
+    exists p,q (
       next(p) = q ^
-      dir(p) = dir(q) ^
-      max_candidate(q) = i
+      dir(p) = dir(q)
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(p, >i+1)
+    - exclude(p, > max_candidate(q) + 1)
 - name: SEEN_AND_NEW
   condition: |
     exists p,q,i (
       points_at(p, q) ^
-      sees_distinct(p) = i ^
       forall j (candidate(q, j) -> !sees_value(p, j))
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(p, i)
+    - exclude(p, sees_distinct(p))
 - name: ALL_DISTINCT
   condition: |
-    exists p,q,r,i (
+    exists p,q,r (
       sees_distinct(p) + ahead_free(p) = val(p) ^
       points_at(p, q) ^
-      val(q) = i ^
+      val(q) != nil ^
       points_at(p, r) ^
       q != r ^
       val(r) = nil ^
-      candidate(r, i)
+      candidate(r, val(q))
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(r, i)
+    - exclude(r, val(q))
 - name: SEE_ALL_OPTIONS
   condition: |
-    exists p,q,i,j (
-      val(p) = i ^
-      sees_distinct(p) = i ^
+    exists p,q,j (
+      val(p) = sees_distinct(p) ^
       points_at(p, q) ^
       candidate(q, j) ^
       forall s (points_at(p, s) -> val(s) != j)
@@ -224,81 +216,71 @@
     - set(q, i)
 - name: AHEAD_ARROW_SAME_DIRECTION_FREE
   condition: |
-    exists p,q,i,j,k,l (
-      max_candidate(p) > l ^
+    exists p,q,i (
       points_at(p, q) ^
       dir(p) = dir(q) ^
-      val(q) = i ^
-      between_free(p, q) = j ^
-      sees_distinct(p) - sees_distinct(q) = k ^
-      l = i + j + k
+      val(q) != nil ^
+      i = val(q) + between_free(p, q) + sees_distinct(p) - sees_distinct(q) ^
+      max_candidate(p) > i
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(p, >l)
+    - exclude(p, >i)
 - name: BEFORE_ARROW_SAME_DIRECTION_FREE
   condition: |
-    exists p,q,i,j,k,l (
-      min_candidate(q) < l ^
+    exists p,q,i (
       points_at(p, q) ^
       dir(p) = dir(q) ^
-      val(p) = i ^
-      between_free(p, q) = j ^
-      sees_distinct(p) - sees_distinct(q) = k ^
-      l = i - j - k - 1
+      i = val(p) - between_free(p, q) - sees_distinct(p) + sees_distinct(q) - 1 ^
+      min_candidate(q) < i
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(q, <l)
+    - exclude(q, <i)
 - name: MAX_VAL_AT_EDGES_CONFIRM
   condition: |
-    exists p,q,i (
+    exists p,q (
       behind(p) = 0 ^
       behind(q) = 0 ^
       points_at(p, q) ^
       points_at(q, p) ^
-      val(p) = ahead(p) ^
-      val(p) = i
+      val(p) = ahead(p)
     )
   kind: FO
   complexity: 3
   conclusions:
-    - set(q, i)
+    - set(q, val(p))
 - name: MAX_VAL_AT_EDGES_DENY
   condition: |
-    exists p,q,i (
+    exists p,q (
       behind(p) = 0 ^
       behind(q) = 0 ^
       points_at(p, q) ^
       points_at(q, p) ^
-      i = ahead(p) ^
-      !candidate(p, i)
+      !candidate(p, ahead(p))
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(q, i)
+    - exclude(q, ahead(p))
 - name: OPPOSITES_LOWER_BOUND
   condition: |
-    exists p,q,i,j,k (
-      min_candidate(p) < k ^
+    exists p,q,i (
       points_at(p, q) ^
       points_at(q, p) ^
-      val(q) = i ^
-      behind(p) = j ^
-      k = i - j - 1
+      i = val(q) - behind(p) - 1 ^
+      min_candidate(p) < i  
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(p, <k)
+    - exclude(p, <i)
 - name: FREE_AHEAD_DISTINCT
   condition: |
-    exists p,j (
+    exists p (
       val(p) = nil ^
-      j = sees_distinct(p) + ahead_free(p) ^
       forall s,k (
         (points_at(p, s) ^ val(s) = nil ^ candidate(s, k)) -> !sees_value(p, k)
       ) ^
@@ -313,20 +295,18 @@
   kind: FO
   complexity: 4
   conclusions:
-    - set(p, j)
+    - set(p, sees_distinct(p) + ahead_free(p))
 - name: OPPOSITES_LOWER_BOUND_CANDIDATES
   condition: |
-    exists p,q,i,j,k (
+    exists p,q,i (
       points_at(p, q) ^
       points_at(q, p) ^
-      min_candidate(q) = i ^
-      behind(p) = j ^
-      k = i - j - 1
+      i = min_candidate(q) - behind(p) - 1
     )
   kind: FO
   complexity: 4
   conclusions:
-    - exclude(p, <k)
+    - exclude(p, <i)
 - name: BACKTRACK_SIMPLE
   kind: Backtrack
   complexity: 5

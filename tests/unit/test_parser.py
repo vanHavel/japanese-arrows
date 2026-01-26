@@ -4,7 +4,6 @@ from japanese_arrows.parser import parse_rule, tokenize
 from japanese_arrows.rules import (
     And,
     BacktrackRule,
-    Calculation,
     Equality,
     ExcludeVal,
     ExistsNumber,
@@ -155,10 +154,10 @@ def test_complex_conclusions() -> None:
 
     c3 = rule.conclusions[2]
     assert isinstance(c3, SetVal)
-    assert isinstance(c3.value, Calculation)
-    assert c3.value.operator == "+"
-    assert str(c3.value.left) == "i"
-    assert str(c3.value.right) == "1"
+    assert isinstance(c3.value, FunctionCall)
+    assert c3.value.name == "+"
+    assert str(c3.value.args[0]) == "i"
+    assert str(c3.value.args[1]) == "1"
 
 
 def test_complex_condition_terms() -> None:

@@ -1,11 +1,11 @@
 from typing import Any, Callable
 
 from japanese_arrows.rules import (
-    ConditionConstant,
-    ConditionVariable,
+    Constant,
     Equality,
     ExistsPosition,
     Relation,
+    Variable,
 )
 from japanese_arrows.type_checking import Type
 from japanese_arrows.universe import Universe
@@ -65,9 +65,9 @@ def test_universe_check_simple() -> None:
 
     from japanese_arrows.rules import FunctionCall
 
-    v_p = ConditionVariable("p")
+    v_p = Variable("p")
     t_val_p = FunctionCall("val", [v_p])
-    t_1 = ConditionConstant(1)
+    t_1 = Constant(1)
 
     formula = ExistsPosition([v_p], Equality(t_val_p, t_1))
 
@@ -76,7 +76,7 @@ def test_universe_check_simple() -> None:
     assert witness["p"] == "p1"
 
     # exists p (val(p) = 3) -> Should return None
-    t_3 = ConditionConstant(3)
+    t_3 = Constant(3)
     formula_false = ExistsPosition([v_p], Equality(t_val_p, t_3))
     assert u.check(formula_false) is None
 
@@ -92,8 +92,8 @@ def test_universe_check_relation() -> None:
     # exists x, y (x < y)
     from japanese_arrows.rules import ExistsNumber
 
-    v_x = ConditionVariable("x")
-    v_y = ConditionVariable("y")
+    v_x = Variable("x")
+    v_y = Variable("y")
 
     formula = ExistsNumber([v_x, v_y], Relation("<", [v_x, v_y]))
 
@@ -115,15 +115,15 @@ def test_universe_quantifier_exclusions() -> None:
 
     u = Universe(domain, constants, {}, {}, quantifier_exclusions=exclusions)
 
-    v_p = ConditionVariable("p")
-    c_OOB = ConditionConstant("OOB")
+    v_p = Variable("p")
+    c_OOB = Constant("OOB")
 
     # exists p (p = OOB) -> should be false because OOB is excluded
     formula_false = ExistsPosition([v_p], Equality(v_p, c_OOB))
     assert u.check(formula_false) is None
 
     # exists p (p != OOB) -> should be true (p=p1)
-    formula_true = ExistsPosition([v_p], Equality(v_p, ConditionConstant("p1")))
+    formula_true = ExistsPosition([v_p], Equality(v_p, Constant("p1")))
 
     witness = u.check(formula_true)
     assert witness is not None

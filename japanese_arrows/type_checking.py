@@ -2,15 +2,8 @@ from enum import Enum
 
 from japanese_arrows.rules import (
     And,
-    Calculation,
     Conclusion,
-    ConclusionConstant,
-    ConclusionTerm,
-    ConclusionVariable,
-    ConditionCalculation,
-    ConditionConstant,
-    ConditionTerm,
-    ConditionVariable,
+    Constant,
     Equality,
     ExcludeVal,
     ExistsNumber,
@@ -26,6 +19,8 @@ from japanese_arrows.rules import (
     Relation,
     Rule,
     SetVal,
+    Term,
+    Variable,
 )
 
 
@@ -69,8 +64,9 @@ def check_rule(
     _gather_condition_variables(rule.condition, scope)
 
     # 3. Check conclusions
+    # 3. Check conclusions
     for conclusion in rule.conclusions:
-        _check_conclusion(conclusion, constants, scope)
+        _check_conclusion(conclusion, constants, scope, functions)
 
 
 def check_condition(
@@ -111,46 +107,52 @@ def _gather_condition_variables(formula: Formula, scope: dict[str, Type]) -> Non
     # Atoms/Relations/Equality don't introduce new variables
 
 
-def _check_conclusion(conclusion: Conclusion, constants: dict[str, Type], scope: dict[str, Type]) -> None:
+def _check_conclusion(
+    conclusion: Conclusion, constants: dict[str, Type], scope: dict[str, Type], functions: dict[str, FunctionSignature]
+) -> None:
     if isinstance(conclusion, SetVal):
-        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        pos_type = _infer_term_type(conclusion.position, constants, scope, functions)
         if pos_type != Type.POSITION:
             raise TypeError(f"SetVal position must be Position, got {pos_type.value}")
 
-        val_type = _infer_conclusion_term_type(conclusion.value, constants, scope)
+        val_type = _infer_term_type(conclusion.value, constants, scope, functions)
         if val_type != Type.NUMBER:
             raise TypeError(f"SetVal value must be Number, got {val_type.value}")
 
     elif isinstance(conclusion, ExcludeVal):
-        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        pos_type = _infer_term_type(conclusion.position, constants, scope, functions)
         if pos_type != Type.POSITION:
             raise TypeError(f"ExcludeVal position must be Position, got {pos_type.value}")
 
-        val_type = _infer_conclusion_term_type(conclusion.value, constants, scope)
+        val_type = _infer_term_type(conclusion.value, constants, scope, functions)
         if val_type != Type.NUMBER:
             raise TypeError(f"ExcludeVal value must be Number, got {val_type.value}")
 
     elif isinstance(conclusion, OnlyVal):
-        pos_type = _infer_conclusion_term_type(conclusion.position, constants, scope)
+        pos_type = _infer_term_type(conclusion.position, constants, scope, functions)
         if pos_type != Type.POSITION:
             raise TypeError(f"OnlyVal position must be Position, got {pos_type.value}")
 
         for val in conclusion.values:
-            val_type = _infer_conclusion_term_type(val, constants, scope)
+            val_type = _infer_term_type(val, constants, scope, functions)
             if val_type != Type.NUMBER:
                 raise TypeError(f"OnlyVal values must be Number, got {val_type.value}")
     else:
         raise TypeError(f"Unknown conclusion type: {type(conclusion)}")
 
 
-def _infer_conclusion_term_type(term: ConclusionTerm, constants: dict[str, Type], scope: dict[str, Type]) -> Type:
-    if isinstance(term, ConclusionVariable):
+def _infer_term_type(
+    term: Term,
+    constants: dict[str, Type],
+    scope: dict[str, Type],
+    functions: dict[str, FunctionSignature] | None = None,
+) -> Type:
+    if isinstance(term, Variable):
         if term.name not in scope:
-            # In conclusions, variables MUST come from the condition's scope
-            raise TypeError(f"Undefined variable in conclusion: {term.name}")
+            raise TypeError(f"Undefined variable: {term.name}")
         return scope[term.name]
 
-    elif isinstance(term, ConclusionConstant):
+    elif isinstance(term, Constant):
         val = term.value
         if isinstance(val, int):
             return Type.NUMBER
@@ -158,17 +160,41 @@ def _infer_conclusion_term_type(term: ConclusionTerm, constants: dict[str, Type]
             return constants[str(val)]
         return Type.UNKNOWN
 
-    elif isinstance(term, Calculation):
-        left_type = _infer_conclusion_term_type(term.left, constants, scope)
-        right_type = _infer_conclusion_term_type(term.right, constants, scope)
+    elif isinstance(term, FunctionCall):
+        # Built-in arithmetic
+        if term.name in ("+", "-"):
+            if len(term.args) != 2:
+                raise TypeError(f"Function '{term.name}' expects 2 arguments, got {len(term.args)}")
 
-        if left_type != Type.NUMBER or right_type != Type.NUMBER:
-            raise TypeError(f"Calculation operands must be Number, got {left_type.value} and {right_type.value}")
+            left_type = _infer_term_type(term.args[0], constants, scope, functions)
+            right_type = _infer_term_type(term.args[1], constants, scope, functions)
+            if left_type != Type.NUMBER or right_type != Type.NUMBER:
+                raise TypeError(
+                    f"Function '{term.name}' operands must be Number, got {left_type.value} and {right_type.value}"
+                )
+            return Type.NUMBER
 
-        return Type.NUMBER
+        if functions is None:
+            # In conclusions, functions might not be allowed or we need to pass functions map.
+            raise TypeError("FunctionCall usage requires functions map")
+
+        if term.name not in functions:
+            raise TypeError(f"Unknown function: {term.name}")
+
+        arg_types, ret_type = functions[term.name]
+        if len(term.args) != len(arg_types):
+            raise TypeError(f"Function '{term.name}' expects {len(arg_types)} arguments, got {len(term.args)}")
+
+        for i, (arg, expected) in enumerate(zip(term.args, arg_types)):
+            actual = _infer_term_type(arg, constants, scope, functions)
+            if actual != expected:
+                raise TypeError(
+                    f"Argument {i + 1} of function '{term.name}' must be {expected.value}, but got {actual.value}"
+                )
+        return ret_type
 
     else:
-        raise TypeError(f"Unknown conclusion term type: {type(term)}")
+        raise TypeError(f"Unknown term type: {type(term)}")
 
 
 def _check_formula(
@@ -198,8 +224,8 @@ def _check_formula(
         _check_formula(formula.formula, constants, functions, relations, new_scope)
 
     elif isinstance(formula, Equality):
-        left_type = _infer_term_type(formula.left, constants, functions, scope)
-        right_type = _infer_term_type(formula.right, constants, functions, scope)
+        left_type = _infer_term_type(formula.left, constants, scope, functions)
+        right_type = _infer_term_type(formula.right, constants, scope, functions)
         if left_type != right_type:
             raise TypeError(f"Equality mismatch: {left_type.value} != {right_type.value} ({formula})")
 
@@ -214,7 +240,7 @@ def _check_formula(
             )
 
         for i, (arg, expected) in enumerate(zip(formula.args, expected_types)):
-            actual = _infer_term_type(arg, constants, functions, scope)
+            actual = _infer_term_type(arg, constants, scope, functions)
             if actual != expected:
                 raise TypeError(
                     f"Argument {i + 1} of '{formula.relation}' must be {expected.value}, "
@@ -222,49 +248,3 @@ def _check_formula(
                 )
     else:
         raise TypeError(f"Unknown formula type: {type(formula)}")
-
-
-def _infer_term_type(
-    term: ConditionTerm, constants: dict[str, Type], functions: dict[str, FunctionSignature], scope: dict[str, Type]
-) -> Type:
-    if isinstance(term, ConditionVariable):
-        if term.name not in scope:
-            raise TypeError(f"Undefined variable: {term.name}")
-        return scope[term.name]
-
-    elif isinstance(term, ConditionConstant):
-        # Constants map check
-        val = term.value
-        if isinstance(val, int):
-            return Type.NUMBER
-        if str(val) in constants:
-            return constants[str(val)]
-        return Type.UNKNOWN
-
-    elif isinstance(term, FunctionCall):
-        if term.name not in functions:
-            raise TypeError(f"Unknown function: {term.name}")
-
-        arg_types, ret_type = functions[term.name]
-        if len(term.args) != len(arg_types):
-            raise TypeError(f"Function '{term.name}' expects {len(arg_types)} arguments, got {len(term.args)}")
-
-        for i, (arg, expected) in enumerate(zip(term.args, arg_types)):
-            actual = _infer_term_type(arg, constants, functions, scope)
-            if actual != expected:
-                raise TypeError(
-                    f"Argument {i + 1} of function '{term.name}' must be {expected.value}, but got {actual.value}"
-                )
-        return ret_type
-
-    elif isinstance(term, ConditionCalculation):
-        left_type = _infer_term_type(term.left, constants, functions, scope)
-        right_type = _infer_term_type(term.right, constants, functions, scope)
-
-        if left_type != Type.NUMBER or right_type != Type.NUMBER:
-            raise TypeError(f"Calculation operands must be Number, got {left_type.value} and {right_type.value}")
-
-        return Type.NUMBER
-
-    else:
-        raise TypeError(f"Unknown term type: {type(term)}")

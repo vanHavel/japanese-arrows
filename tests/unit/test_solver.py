@@ -1,15 +1,13 @@
 from japanese_arrows.models import Cell, Direction, Puzzle
 from japanese_arrows.rules import (
-    ConclusionConstant,
-    ConclusionVariable,
-    ConditionConstant,
-    ConditionVariable,
+    Constant,
     Equality,
     ExcludeVal,
     ExistsPosition,
     FORule,
     FunctionCall,
     SetVal,
+    Variable,
 )
 from japanese_arrows.solver import Solver, SolverStatus
 
@@ -118,17 +116,17 @@ def test_apply_simple_rule() -> None:
     # Rule: exists p (val(p) = nil) => set(p, 1)
     # Applying this to a puzzle with empty cells should set candidates to {1} (and number to 1)
 
-    p_var = ConditionVariable("p")
+    p_var = Variable("p")
     # Condition: exists p (val(p) = nil)
     # Note: val(p) returns "nil" (string) if number is None.
     # Equality check: val(p) == "nil"
     # But wait, ConditionConstant("nil") evaluates to "nil" via Universe lookup if "nil" is in constants?
     # Yes, Solver adds "nil" to constants.
 
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
 
     # Conclusion: set(p, 1)
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
+    concl = SetVal(Variable("p"), Constant(1))
 
     rule = FORule(name="fill_one", condition=cond, conclusions=[concl])
 
@@ -172,9 +170,9 @@ def test_contradiction() -> None:
     puzzle = Puzzle(rows=1, cols=1, grid=grid)
 
     # Rule: exists p (val(p) = 1) => set(p, 0)
-    p_var = ConditionVariable("p")
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(1)))
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
+    p_var = Variable("p")
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant(1)))
+    concl = SetVal(Variable("p"), Constant(0))
     rule = FORule("contradict", cond, [concl])
 
     solver = Solver([rule])
@@ -190,11 +188,11 @@ def test_contradiction_prefilled_removal() -> None:
     puzzle = Puzzle(rows=1, cols=1, grid=grid)
 
     # Rule: exists p (val(p) = 0) => exclude(p, =, 0)
-    p_var = ConditionVariable("p")
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(0)))
+    p_var = Variable("p")
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant(0)))
 
     # Conclusion: exclude(p, =, 0)
-    concl = ExcludeVal(ConclusionVariable("p"), "=", ConclusionConstant(0))
+    concl = ExcludeVal(Variable("p"), "=", Constant(0))
 
     rule = FORule("exclude_zero", cond, [concl])
 
@@ -211,9 +209,9 @@ def test_solver_result_steps_trace() -> None:
     puzzle = Puzzle(rows=1, cols=2, grid=grid)
 
     # Rule that sets empty cells to 0
-    p_var = ConditionVariable("p")
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
+    p_var = Variable("p")
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
+    concl = SetVal(Variable("p"), Constant(0))
     rule = FORule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
 
     solver = Solver([rule])
@@ -233,16 +231,16 @@ def test_solver_result_max_complexity_used() -> None:
     grid = [[Cell(Direction.EAST, None), Cell(Direction.EAST, None)]]
     puzzle = Puzzle(rows=1, cols=2, grid=grid)
 
-    p_var = ConditionVariable("p")
+    p_var = Variable("p")
 
     # Low complexity rule: sets first empty cell to 0
-    cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
-    concl1 = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
+    cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
+    concl1 = SetVal(Variable("p"), Constant(0))
     rule1 = FORule(name="low_complexity", condition=cond1, conclusions=[concl1], complexity=1)
 
     # Higher complexity rule that will never match (no cell has value 99)
-    cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(99)))
-    concl2 = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
+    cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant(99)))
+    concl2 = SetVal(Variable("p"), Constant(1))
     rule2 = FORule(name="high_complexity", condition=cond2, conclusions=[concl2], complexity=5)
 
     solver = Solver([rule1, rule2])
@@ -258,9 +256,9 @@ def test_solver_result_rule_application_count() -> None:
     grid = [[Cell(Direction.EAST, None), Cell(Direction.EAST, None), Cell(Direction.EAST, None)]]
     puzzle = Puzzle(rows=1, cols=3, grid=grid)
 
-    p_var = ConditionVariable("p")
-    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
-    concl = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
+    p_var = Variable("p")
+    cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
+    concl = SetVal(Variable("p"), Constant(0))
     rule = FORule(name="fill_zero", condition=cond, conclusions=[concl], complexity=1)
 
     solver = Solver([rule])
@@ -277,17 +275,17 @@ def test_solver_result_multiple_rules_count() -> None:
     grid = [[Cell(Direction.EAST, 0), Cell(Direction.EAST, None)]]
     puzzle = Puzzle(rows=1, cols=2, grid=grid)
 
-    p_var = ConditionVariable("p")
+    p_var = Variable("p")
 
     # Rule 1: fill empty cells with 0
-    cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant("nil")))
-    concl1 = SetVal(ConclusionVariable("p"), ConclusionConstant(0))
+    cond1 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
+    concl1 = SetVal(Variable("p"), Constant(0))
     rule1 = FORule(name="fill_nil", condition=cond1, conclusions=[concl1], complexity=1)
 
     # Rule 2: would exclude 0 from cells with 0 (causes contradiction, but tests counting)
     # Actually let's use a rule that simply doesn't match
-    cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), ConditionConstant(99)))
-    concl2 = SetVal(ConclusionVariable("p"), ConclusionConstant(1))
+    cond2 = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant(99)))
+    concl2 = SetVal(Variable("p"), Constant(1))
     rule2 = FORule(name="never_matches", condition=cond2, conclusions=[concl2], complexity=3)
 
     solver = Solver([rule1, rule2])
