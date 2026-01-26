@@ -4,6 +4,7 @@ from typing import TextIO
 from japanese_arrows.generator import (
     FollowingArrowsFraction,
     Generator,
+    NumberFraction,
     RuleComplexityFraction,
 )
 from japanese_arrows.models import Puzzle
@@ -43,19 +44,17 @@ def write_puzzle_analysis(f: TextIO, i: int, puzzle: Puzzle, solution: Puzzle, r
 
 def main() -> None:
     # --- Configuration ---
-    ROWS = 4
-    COLS = 4
-    ALLOW_DIAGONALS = False
-    MAX_COMPLEXITY = 3
-    COUNT = 10
+    ROWS = 6
+    COLS = 6
+    ALLOW_DIAGONALS = True
+    MAX_COMPLEXITY = 6
+    COUNT = 5
 
-    # Using some reasonable constraints for "Easy" puzzles
-    # Easy generally means lower complexity rules suffice, but we still want some structure.
     CONSTRAINTS = [
-        FollowingArrowsFraction(min_fraction=0.1),
-        # Ensure we actually use some logic, not just trivial fills if possible,
-        # though max_complexity=3 bounds it from above.
-        RuleComplexityFraction(complexity=3, min_fraction=0.01),
+        FollowingArrowsFraction(min_fraction=0.05),
+        RuleComplexityFraction(complexity=6, min_count=1, max_count=4),
+        NumberFraction(number=1, max_fraction=0.5),
+        NumberFraction(number=4, min_fraction=0.01),
     ]
 
     OUTPUT_FILE = "scripts/output/batch_analysis.txt"
@@ -101,7 +100,7 @@ def main() -> None:
         f.write("\n")
 
         for i, puzzle in enumerate(puzzles):
-            res = solver.solve(puzzle)
+            res = solver.solve(puzzle, solve_with_min_complexity=True)
             if res.status == SolverStatus.SOLVED:
                 write_puzzle_analysis(f, i, puzzle, res.puzzle, res)
             else:

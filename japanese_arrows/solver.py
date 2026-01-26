@@ -77,6 +77,7 @@ class Solver:
         puzzle: Puzzle,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]] | None = None,
         reuse_candidates: bool = False,
+        solve_with_min_complexity: bool = False,
     ) -> SolverResult:
         if path_cache is None:
             path_cache = compute_all_paths(puzzle)
@@ -94,39 +95,72 @@ class Solver:
 
         universe = self._create_universe(puzzle, path_cache)
 
-        current_complexity = 1
+        if solve_with_min_complexity:
+            while True:
+                progress_made = False
+                for rule in self.rules:
+                    start_time = time.perf_counter()
+                    result = self._try_apply_rule(puzzle, rule, universe, path_cache)
+                    duration = time.perf_counter() - start_time
+                    rule_execution_time[rule.name] = rule_execution_time.get(rule.name, 0.0) + duration
 
-        while current_complexity <= self.max_rule_complexity:
-            applicable_rules = [r for r in self.rules if r.complexity <= current_complexity]
+                    if result.status == SolverStatus.NO_SOLUTION:
+                        return SolverResult(
+                            status=SolverStatus.NO_SOLUTION,
+                            puzzle=puzzle,
+                            max_complexity_used=max(max_complexity_used, result.max_complexity_used),
+                            rule_application_count=rule_application_count,
+                            rule_execution_time=rule_execution_time,
+                            steps=steps,
+                            initial_puzzle=initial_puzzle_copy,
+                            contradiction_location=result.contradiction_location,
+                        )
 
-            if not applicable_rules:
-                current_complexity += 1
-                continue
+                    if result.steps:
+                        # Progress made
+                        steps.extend(result.steps)
+                        rule_application_count[rule.name] += len(result.steps)
+                        max_complexity_used = max(max_complexity_used, rule.complexity)
+                        progress_made = True
+                        break  # Restart from the beginning (simplest rules)
 
-            result = self._apply_rules_at_complexity(
-                puzzle,
-                applicable_rules,
-                universe,
-                steps,
-                rule_application_count,
-                rule_execution_time,
-                path_cache,
-            )
+                if not progress_made:
+                    break
 
-            if result.status == SolverStatus.NO_SOLUTION:
-                return SolverResult(
-                    status=SolverStatus.NO_SOLUTION,
-                    puzzle=puzzle,
-                    max_complexity_used=max(max_complexity_used, result.max_complexity_used),
-                    rule_application_count=rule_application_count,
-                    rule_execution_time=rule_execution_time,
-                    steps=steps,
-                    initial_puzzle=initial_puzzle_copy,
-                    contradiction_location=result.contradiction_location,
+        else:
+            current_complexity = 1
+
+            while current_complexity <= self.max_rule_complexity:
+                applicable_rules = [r for r in self.rules if r.complexity <= current_complexity]
+
+                if not applicable_rules:
+                    current_complexity += 1
+                    continue
+
+                result = self._apply_rules_at_complexity(
+                    puzzle,
+                    applicable_rules,
+                    universe,
+                    steps,
+                    rule_application_count,
+                    rule_execution_time,
+                    path_cache,
                 )
 
-            max_complexity_used = max(max_complexity_used, result.max_complexity_used)
-            current_complexity += 1
+                if result.status == SolverStatus.NO_SOLUTION:
+                    return SolverResult(
+                        status=SolverStatus.NO_SOLUTION,
+                        puzzle=puzzle,
+                        max_complexity_used=max(max_complexity_used, result.max_complexity_used),
+                        rule_application_count=rule_application_count,
+                        rule_execution_time=rule_execution_time,
+                        steps=steps,
+                        initial_puzzle=initial_puzzle_copy,
+                        contradiction_location=result.contradiction_location,
+                    )
+
+                max_complexity_used = max(max_complexity_used, result.max_complexity_used)
+                current_complexity += 1
 
         status = self._determine_final_status(puzzle)
 

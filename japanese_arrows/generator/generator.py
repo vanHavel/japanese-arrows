@@ -77,22 +77,34 @@ class Generator:
             modifications = 0
 
             while True:
-                trace = solver.solve(current_puzzle, path_cache=path_cache, reuse_candidates=reuse_candidates)
+                trace = solver.solve(
+                    current_puzzle,
+                    path_cache=path_cache,
+                    reuse_candidates=reuse_candidates,
+                    solve_with_min_complexity=True,
+                )
 
                 if trace.status == SolverStatus.SOLVED:
-                    failing_constraint = self._get_failing_constraint(trace, constraints)
+                    # Re-solve from scratch to ensure accurate complexity and rule counts
+                    clean_puzzle = copy.deepcopy(base_puzzle)
+                    for gr, gc, gval in guesses:
+                        clean_puzzle.grid[gr][gc].number = gval
+                        clean_puzzle.grid[gr][gc].candidates = {gval}
+
+                    final_trace = solver.solve(
+                        clean_puzzle,
+                        path_cache=path_cache,
+                        reuse_candidates=False,
+                        solve_with_min_complexity=True,
+                    )
+
+                    failing_constraint = self._get_failing_constraint(final_trace, constraints)
                     if failing_constraint is None:
                         stats.puzzles_successfully_generated += 1
 
                         # Return a puzzle that only has the guesses and prefilled numbers
-                        result_puzzle = copy.deepcopy(base_puzzle)
-
-                        # Apply guesses
-                        for gr, gc, gval in guesses:
-                            result_puzzle.grid[gr][gc].number = gval
-                            result_puzzle.grid[gr][gc].candidates = {gval}
-
-                        return result_puzzle, stats
+                        # clean_puzzle is exactly what we need
+                        return clean_puzzle, stats
                     else:
                         stats.puzzles_rejected_constraints += 1
                         stats.rejections_per_constraint[failing_constraint.name] = (

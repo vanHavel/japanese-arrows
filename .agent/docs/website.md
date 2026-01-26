@@ -48,10 +48,10 @@ There are files
 
 # Puzzle Release Schedule
 
-Monday: Easy, 4x4, Straight
-Tuesday: Normal, 5x5, Diagonal
-Wednesday: Hard, 6x6 Straight
-Thursday: Hard, 5x5, Diagonal
-Friday: Normal, 5x5, Straight
+Monday: Easy, 4x4, Straight (x)
+Tuesday: Normal, 5x5, Diagonal (x)
+Wednesday: Hard, 6x6 Straight (x)
+Thursday: Hard, 5x5, Diagonal (x)
+Friday: Normal, 5x5, Straight (x)
 Saturday: Devious, 6x6, Diagonal
-Sunday: Devious, 6x6, Straight
+Sunday: Devious, 5x5, Straight
