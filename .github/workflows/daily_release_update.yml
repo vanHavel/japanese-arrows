@@ -1,0 +1,44 @@
+name: Update Release Date
+
+on:
+  schedule:
+    # 10am Europe/Berlin is 09:00 UTC (in standard time/winter) and 08:00 UTC (in summer).
+    # Setting to 09:00 UTC ensures it is roughly morning in Berlin (10am or 11am).
+    - cron: '0 9 * * *'
+  workflow_dispatch:
+
+jobs:
+  update-date:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Update RELEASE_DATE in deploy.py
+        run: |
+          # Get current date in YYYY-MM-DD format
+          TODAY=$(date +'%Y-%m-%d')
+          echo "Updating RELEASE_DATE to $TODAY"
+          
+          # Use sed to replace the date in scripts/deploy.py
+          sed -i "s/RELEASE_DATE = \"[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\"/RELEASE_DATE = \"$TODAY\"/" scripts/deploy.py
+          
+          # Verify the change
+          grep "RELEASE_DATE =" scripts/deploy.py
+
+      - name: Commit and Push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          if git diff --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          
+          git add scripts/deploy.py
+          git commit -m "Update RELEASE_DATE to $(date +'%Y-%m-%d')"
+          git push
