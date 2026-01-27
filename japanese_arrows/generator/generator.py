@@ -179,7 +179,7 @@ class Generator:
         max_complexity: int,
         constraints: list[Constraint],
         n_jobs: int = 1,
-        timeout_seconds: int = 600,
+        timeout_seconds: int = 1200,
     ) -> tuple[list[Puzzle], GenerationStats]:
         n_workers = effective_n_jobs(n_jobs)
         puzzles: list[Puzzle] = []
