@@ -1,13 +1,15 @@
 document.addEventListener('DOMContentLoaded', () => {
     // Constants
-    const DEFAULT_DATE = '2026-01-25'; // Default to today/latest
-    const MIN_DATE = '2026-01-24'; // Earliest available puzzle
-
+    // Date Logic
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
     const dd = String(today.getDate()).padStart(2, '0');
-    const MAX_DATE = `${yyyy}-${mm}-${dd}`;
+    const TODAY_ISO = `${yyyy}-${mm}-${dd}`;
+
+    const DEFAULT_DATE = TODAY_ISO; // Default to today
+    const MIN_DATE = '2026-01-24'; // Earliest available puzzle
+    const MAX_DATE = TODAY_ISO;
 
     const GRID_SIZE = 500; // Max width in px
 

@@ -1,5 +1,29 @@
 [
   {
+    "date": "2026-01-29",
+    "difficulty": "Hard",
+    "size": "5x5",
+    "arrows": "Diagonal"
+  },
+  {
+    "date": "2026-01-28",
+    "difficulty": "Hard",
+    "size": "6x6",
+    "arrows": "Straight"
+  },
+  {
+    "date": "2026-01-27",
+    "difficulty": "Normal",
+    "size": "5x5",
+    "arrows": "Diagonal"
+  },
+  {
+    "date": "2026-01-26",
+    "difficulty": "Easy",
+    "size": "4x4",
+    "arrows": "Straight"
+  },
+  {
     "date": "2026-01-25",
     "difficulty": "Hard",
     "size": "5x5",

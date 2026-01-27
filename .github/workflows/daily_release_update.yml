@@ -17,12 +17,13 @@ jobs:
 
       - name: Update RELEASE_DATE in deploy.py
         run: |
-          # Get current date in YYYY-MM-DD format
-          TODAY=$(date +'%Y-%m-%d')
-          echo "Updating RELEASE_DATE to $TODAY"
+          # Get tomorrow's date in YYYY-MM-DD format
+          # On Ubuntu (GitHub runner), we use GNU date: date -d "tomorrow"
+          TOMORROW=$(date -d "tomorrow" +'%Y-%m-%d')
+          echo "Updating RELEASE_DATE to $TOMORROW"
           
           # Use sed to replace the date in scripts/deploy.py
-          sed -i "s/RELEASE_DATE = \"[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\"/RELEASE_DATE = \"$TODAY\"/" scripts/deploy.py
+          sed -i "s/RELEASE_DATE = \"[0-9]\{4\}-[0-9]\{2\}-[0-9]\{2\}\"/RELEASE_DATE = \"$TOMORROW\"/" scripts/deploy.py
           
           # Verify the change
           grep "RELEASE_DATE =" scripts/deploy.py
@@ -38,5 +39,5 @@ jobs:
           fi
           
           git add scripts/deploy.py
-          git commit -m "Update RELEASE_DATE to $(date +'%Y-%m-%d')"
+          git commit -m "Update RELEASE_DATE to $(date -d 'tomorrow' +'%Y-%m-%d')"
           git push
