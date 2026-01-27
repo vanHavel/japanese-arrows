@@ -1,12 +1,18 @@
-from abc import ABC
+import itertools
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import Any
+from typing import TYPE_CHECKING, Any, Iterator
+
+if TYPE_CHECKING:
+    from japanese_arrows.universe import Universe
 
 # --- Terms ---
 
 
 class Term(ABC):
-    pass
+    @abstractmethod
+    def eval(self, universe: "Universe", assignment: dict[str, Any]) -> Any:
+        pass
 
 
 @dataclass
@@ -16,6 +22,11 @@ class Variable(Term):
     def __str__(self) -> str:
         return self.name
 
+    def eval(self, universe: "Universe", assignment: dict[str, Any]) -> Any:
+        if self.name not in assignment:
+            raise KeyError(f"Variable {self.name} not in assignment")
+        return assignment[self.name]
+
 
 @dataclass
 class Constant(Term):
@@ -23,6 +34,11 @@ class Constant(Term):
 
     def __str__(self) -> str:
         return str(self.value)
+
+    def eval(self, universe: "Universe", assignment: dict[str, Any]) -> Any:
+        if isinstance(self.value, str) and self.value in universe.constants:
+            return universe.constants[self.value]
+        return self.value
 
 
 @dataclass
@@ -34,12 +50,33 @@ class FunctionCall(Term):
         args_str = ", ".join(str(arg) for arg in self.args)
         return f"{self.name}({args_str})"
 
+    def eval(self, universe: "Universe", assignment: dict[str, Any]) -> Any:
+        if self.name == "+":
+            op_left = self.args[0].eval(universe, assignment)
+            op_right = self.args[1].eval(universe, assignment)
+            if isinstance(op_left, int) and isinstance(op_right, int):
+                return op_left + op_right
+            return "nil"
+        if self.name == "-":
+            op_left = self.args[0].eval(universe, assignment)
+            op_right = self.args[1].eval(universe, assignment)
+            if isinstance(op_left, int) and isinstance(op_right, int):
+                return op_left - op_right
+            return "nil"
+
+        if self.name not in universe.functions:
+            raise ValueError(f"Unknown function: {self.name}")
+        args_values = [arg.eval(universe, assignment) for arg in self.args]
+        return universe.functions[self.name](tuple(args_values))
+
 
 # --- Formulas (Uses Terms) ---
 
 
 class Formula(ABC):
-    pass
+    @abstractmethod
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        pass
 
 
 @dataclass
@@ -48,6 +85,11 @@ class Not(Formula):
 
     def __str__(self) -> str:
         return f"~({self.formula})"
+
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        first_inner = next(self.formula.check(universe, assignment), None)
+        if first_inner is None:
+            yield {}
 
 
 class Atom(Formula):
@@ -66,6 +108,15 @@ class Relation(Atom):
         args_str = ", ".join(str(arg) for arg in self.args)
         return f"{self.relation}({args_str})"
 
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        args_values = [arg.eval(universe, assignment) for arg in self.args]
+        if self.relation not in universe.relations:
+            raise ValueError(f"Unknown relation: {self.relation}")
+
+        is_true = universe.relations[self.relation](tuple(args_values))
+        if is_true:
+            yield {}
+
 
 @dataclass
 class Equality(Atom):
@@ -75,6 +126,12 @@ class Equality(Atom):
     def __str__(self) -> str:
         return f"{self.left} = {self.right}"
 
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        left = self.left.eval(universe, assignment)
+        right = self.right.eval(universe, assignment)
+        if left == right:
+            yield {}
+
 
 @dataclass
 class And(Formula):
@@ -83,6 +140,20 @@ class And(Formula):
     def __str__(self) -> str:
         return " ^ ".join(f"({f})" for f in self.formulas)
 
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        return self._check_recursive(universe, self.formulas, assignment, {})
+
+    def _check_recursive(
+        self, universe: "Universe", formulas: list[Formula], assignment: dict[str, Any], combined: dict[str, Any]
+    ) -> Iterator[dict[str, Any]]:
+        if not formulas:
+            yield combined
+            return
+
+        first, *rest = formulas
+        for w in first.check(universe, assignment):
+            yield from self._check_recursive(universe, rest, assignment, combined | w)
+
 
 @dataclass
 class Or(Formula):
@@ -90,6 +161,10 @@ class Or(Formula):
 
     def __str__(self) -> str:
         return " v ".join(f"({f})" for f in self.formulas)
+
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        for sub in self.formulas:
+            yield from sub.check(universe, assignment)
 
 
 class Quantifier(Formula):
@@ -105,6 +180,25 @@ class ExistsPosition(Quantifier):
         vars_str = ", ".join(str(v) for v in self.variables)
         return f"exists_pos {vars_str} ({self.formula})"
 
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        from japanese_arrows.type_checking import Type
+
+        domain_type = Type.POSITION
+        elements = universe.domain.get(domain_type, set())
+        if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
+            elements = elements - universe.quantifier_exclusions[domain_type]
+
+        names = [v.name for v in self.variables]
+        for values in itertools.product(elements, repeat=len(self.variables)):
+            new_assignment = assignment.copy()
+            current_witness: dict[str, Any] = {}
+            for name, val in zip(names, values):
+                new_assignment[name] = val
+                current_witness[name] = val
+
+            for inner_witness in self.formula.check(universe, new_assignment):
+                yield current_witness | inner_witness
+
 
 @dataclass
 class ExistsNumber(Quantifier):
@@ -114,6 +208,25 @@ class ExistsNumber(Quantifier):
     def __str__(self) -> str:
         vars_str = ", ".join(str(v) for v in self.variables)
         return f"exists_num {vars_str} ({self.formula})"
+
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        from japanese_arrows.type_checking import Type
+
+        domain_type = Type.NUMBER
+        elements = universe.domain.get(domain_type, set())
+        if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
+            elements = elements - universe.quantifier_exclusions[domain_type]
+
+        names = [v.name for v in self.variables]
+        for values in itertools.product(elements, repeat=len(self.variables)):
+            new_assignment = assignment.copy()
+            current_witness: dict[str, Any] = {}
+            for name, val in zip(names, values):
+                new_assignment[name] = val
+                current_witness[name] = val
+
+            for inner_witness in self.formula.check(universe, new_assignment):
+                yield current_witness | inner_witness
 
 
 @dataclass
@@ -125,6 +238,26 @@ class ForAllPosition(Quantifier):
         vars_str = ", ".join(str(v) for v in self.variables)
         return f"forall_pos {vars_str} ({self.formula})"
 
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        from japanese_arrows.type_checking import Type
+
+        domain_type = Type.POSITION
+        elements = universe.domain.get(domain_type, set())
+        if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
+            elements = elements - universe.quantifier_exclusions[domain_type]
+
+        names = [v.name for v in self.variables]
+        for values in itertools.product(elements, repeat=len(self.variables)):
+            new_assignment = assignment.copy()
+            for name, val in zip(names, values):
+                new_assignment[name] = val
+
+            first_inner = next(self.formula.check(universe, new_assignment), None)
+            if first_inner is None:
+                return
+
+        yield {}
+
 
 @dataclass
 class ForAllNumber(Quantifier):
@@ -134,6 +267,26 @@ class ForAllNumber(Quantifier):
     def __str__(self) -> str:
         vars_str = ", ".join(str(v) for v in self.variables)
         return f"forall_num {vars_str} ({self.formula})"
+
+    def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
+        from japanese_arrows.type_checking import Type
+
+        domain_type = Type.NUMBER
+        elements = universe.domain.get(domain_type, set())
+        if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
+            elements = elements - universe.quantifier_exclusions[domain_type]
+
+        names = [v.name for v in self.variables]
+        for values in itertools.product(elements, repeat=len(self.variables)):
+            new_assignment = assignment.copy()
+            for name, val in zip(names, values):
+                new_assignment[name] = val
+
+            first_inner = next(self.formula.check(universe, new_assignment), None)
+            if first_inner is None:
+                return
+
+        yield {}
 
 
 # --- Conclusions (Uses Terms) ---
