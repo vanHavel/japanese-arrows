@@ -32,16 +32,8 @@ The generator tracks detailed statistics to help tune constraints and understand
 *   `rejections_per_constraint`: Breakdown of which constraints were most difficult to satisfy.
 
 Current feasible generation limits:
-- max complexity: 6
-  - 6x6 for straight
-  - 6x6 for diagonal
-- max_complexity: 5
-  - 7x7 for straight
-  - 8x8 for diagonal
-- max_complexity: 4
-  - unsuccesful for straight
-  - unsuccesful for diagonal
-- max_complexity: 3
-  - 8x8 for straight
-  - 9x9 for diagonal
+- max complexity: 6 - 6x6
+- max_complexity: 5 - 8x8
+- max_complexity: 4 - unsuccesful
+- max_complexity: 3 - 9x9
   

@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     let sortField = 'date';
     let sortDir = 'desc'; // 'asc' or 'desc'
     let currentPage = 1;
-    const itemsPerPage = 10;
+    const itemsPerPage = 20;
 
     try {
         const response = await fetch('/assets/puzzles.json');
