@@ -3,7 +3,7 @@
 Try japanese arrow puzzles on [yazudo.app](https://yazudo.app)!
 
 The rules are simple: 
-- a number needs to be placed in each arrow
+- a number needs to be placed into each arrow
 - the number equals the count of distinct numbers, which the arrow points at in a straight line
 
 ![Example Puzzle](github/example_puzzle.png)

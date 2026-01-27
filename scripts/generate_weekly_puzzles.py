@@ -84,6 +84,6 @@ GENERATION_CONFIG = {
             NumberFraction(number=1, max_fraction=0.5),
             NumberFraction(number=4, min_fraction=0.01),
         ],
-        "difficulty": "Hard",
+        "difficulty": "Devious",
     },
 }

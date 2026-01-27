@@ -1,6 +1,7 @@
 import copy
+import multiprocessing
 import random
-from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, wait
+import time
 from dataclasses import dataclass, field
 
 from joblib import effective_n_jobs
@@ -16,6 +17,7 @@ class GenerationStats:
     puzzles_rejected_constraints: int = 0
     puzzles_rejected_no_solution: int = 0
     puzzles_rejected_excessive_guessing: int = 0
+    puzzles_rejected_timeout: int = 0
     rejections_per_constraint: dict[str, int] = field(default_factory=dict)
 
 
@@ -196,73 +198,126 @@ class Generator:
         constraints: list[Constraint],
         prefilled_cells_count: int = 0,
         n_jobs: int = 1,
+        timeout_seconds: int = 600,
     ) -> tuple[list[Puzzle], GenerationStats]:
         n_workers = effective_n_jobs(n_jobs)
         puzzles: list[Puzzle] = []
         total_stats = GenerationStats()
+        last_logged_attempts = 0
 
-        with ProcessPoolExecutor(max_workers=n_workers) as executor:
+        # Use multiprocessing.Pool to allow immediate termination of workers
+        pool = multiprocessing.Pool(processes=n_workers)
+        pending_results = []
+
+        try:
             # Initial submission of tasks
-            futures = set()
             for _ in range(n_workers):
-                futures.add(
-                    executor.submit(
-                        self.generate,
-                        rows=rows,
-                        cols=cols,
-                        allow_diagonals=allow_diagonals,
-                        max_complexity=max_complexity,
-                        constraints=constraints,
-                        prefilled_cells_count=prefilled_cells_count,
-                        max_attempts=1,
+                pending_results.append(
+                    (
+                        time.time(),
+                        pool.apply_async(
+                            self.generate,
+                            kwds={
+                                "rows": rows,
+                                "cols": cols,
+                                "allow_diagonals": allow_diagonals,
+                                "max_complexity": max_complexity,
+                                "constraints": constraints,
+                                "prefilled_cells_count": prefilled_cells_count,
+                                "max_attempts": 1,
+                            },
+                        ),
                     )
                 )
 
             # Loop until we have enough puzzles
             while len(puzzles) < count:
-                done, _ = wait(futures, return_when=FIRST_COMPLETED)
+                # Check for completed tasks
+                completed_indices = []
+                now = time.time()
+                for i, (start_time, res) in enumerate(pending_results):
+                    if res.ready():
+                        completed_indices.append(i)
+                    elif now - start_time > timeout_seconds:
+                        print(f"[Generator] Task timed out after {timeout_seconds}s")
+                        completed_indices.append(i)
 
-                for future in done:
-                    futures.remove(future)
+                if not completed_indices:
+                    time.sleep(0.05)
+                    continue
+
+                # Process completed tasks (in reverse order to pop safely)
+                for i in sorted(completed_indices, reverse=True):
+                    start_time, res = pending_results.pop(i)
                     try:
-                        res_puzzle, res_stats = future.result()
+                        if not res.ready():
+                            # This was a timeout
+                            total_stats.puzzles_rejected_timeout += 1
+                        else:
+                            res_puzzle, res_stats = res.get()
 
-                        # Aggregate stats
-                        total_stats.puzzles_successfully_generated += res_stats.puzzles_successfully_generated
-                        total_stats.puzzles_rejected_constraints += res_stats.puzzles_rejected_constraints
-                        total_stats.puzzles_rejected_no_solution += res_stats.puzzles_rejected_no_solution
-                        total_stats.puzzles_rejected_excessive_guessing += res_stats.puzzles_rejected_excessive_guessing
-                        for name, val in res_stats.rejections_per_constraint.items():
-                            total_stats.rejections_per_constraint[name] = (
-                                total_stats.rejections_per_constraint.get(name, 0) + val
+                            # Aggregate stats
+                            total_stats.puzzles_successfully_generated += res_stats.puzzles_successfully_generated
+                            total_stats.puzzles_rejected_constraints += res_stats.puzzles_rejected_constraints
+                            total_stats.puzzles_rejected_no_solution += res_stats.puzzles_rejected_no_solution
+                            total_stats.puzzles_rejected_excessive_guessing += (
+                                res_stats.puzzles_rejected_excessive_guessing
                             )
+                            total_stats.puzzles_rejected_timeout += res_stats.puzzles_rejected_timeout
+                            for name, val in res_stats.rejections_per_constraint.items():
+                                total_stats.rejections_per_constraint[name] = (
+                                    total_stats.rejections_per_constraint.get(name, 0) + val
+                                )
 
-                        if res_puzzle is not None:
-                            puzzles.append(res_puzzle)
+                            if res_puzzle is not None:
+                                puzzles.append(res_puzzle)
+
+                        total_attempts = (
+                            total_stats.puzzles_successfully_generated
+                            + total_stats.puzzles_rejected_constraints
+                            + total_stats.puzzles_rejected_no_solution
+                            + total_stats.puzzles_rejected_excessive_guessing
+                            + total_stats.puzzles_rejected_timeout
+                        )
+                        if total_attempts >= (last_logged_attempts + 10):
+                            print(
+                                f"[Generator] Attempts: {total_attempts} | Generated: {len(puzzles)}/{count} | "
+                                f"Rejected (C:{total_stats.puzzles_rejected_constraints}, "
+                                f"N:{total_stats.puzzles_rejected_no_solution}, "
+                                f"G:{total_stats.puzzles_rejected_excessive_guessing}, "
+                                f"T:{total_stats.puzzles_rejected_timeout})"
+                            )
+                            last_logged_attempts = total_attempts
 
                     except Exception:
                         # Log error if possible, or just continue
                         pass
 
                     if len(puzzles) < count:
-                        futures.add(
-                            executor.submit(
-                                self.generate,
-                                rows=rows,
-                                cols=cols,
-                                allow_diagonals=allow_diagonals,
-                                max_complexity=max_complexity,
-                                constraints=constraints,
-                                prefilled_cells_count=prefilled_cells_count,
-                                max_attempts=1,
+                        pending_results.append(
+                            (
+                                time.time(),
+                                pool.apply_async(
+                                    self.generate,
+                                    kwds={
+                                        "rows": rows,
+                                        "cols": cols,
+                                        "allow_diagonals": allow_diagonals,
+                                        "max_complexity": max_complexity,
+                                        "constraints": constraints,
+                                        "prefilled_cells_count": prefilled_cells_count,
+                                        "max_attempts": 1,
+                                    },
+                                ),
                             )
                         )
                     else:
                         break
 
-            # Cancel remaining
-            for f in futures:
-                f.cancel()
+        finally:
+            # Nuclear option: terminate the pool immediately
+            pool.terminate()
+            pool.join()
 
         return puzzles, total_stats
 

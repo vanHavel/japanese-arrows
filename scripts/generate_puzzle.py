@@ -56,6 +56,7 @@ def main() -> None:
     print(f"  Puzzles successfully generated: {stats.puzzles_successfully_generated}")
     print(f"  Puzzles rejected by no solution: {stats.puzzles_rejected_no_solution}")
     print(f"  Puzzles rejected by excessive guessing: {stats.puzzles_rejected_excessive_guessing}")
+    print(f"  Puzzles rejected by timeout: {stats.puzzles_rejected_timeout}")
     print(f"  Puzzles rejected by constraints: {stats.puzzles_rejected_constraints}")
     for name, count in stats.rejections_per_constraint.items():
         print(f"    - {name}: {count}")

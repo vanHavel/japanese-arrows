@@ -1,3 +1,4 @@
+import multiprocessing
 from collections import defaultdict
 from typing import TextIO
 
@@ -42,26 +43,31 @@ def write_puzzle_analysis(f: TextIO, i: int, puzzle: Puzzle, solution: Puzzle, r
         f.write(f"  {rule}: {rule_counts[rule]}\n")
 
 
+def solve_puzzle_worker(args: tuple[Puzzle, int]) -> tuple[Puzzle, SolverResult]:
+    puzzle, max_complexity = args
+    solver = create_solver(max_complexity=max_complexity)
+    res = solver.solve(puzzle, solve_with_min_complexity=True)
+    return puzzle, res
+
+
 def main() -> None:
     # --- Configuration ---
-    ROWS = 6
-    COLS = 6
+    ROWS = 8
+    COLS = 8
     ALLOW_DIAGONALS = False
-    MAX_COMPLEXITY = 6
-    COUNT = 5
+    MAX_COMPLEXITY = 5
+    COUNT = 1
 
     CONSTRAINTS = [
-        FollowingArrowsFraction(min_fraction=0.05),
-        RuleComplexityFraction(complexity=6, min_count=1, max_count=4),
+        FollowingArrowsFraction(min_fraction=0.1),
+        RuleComplexityFraction(complexity=5, min_count=1),
         NumberFraction(number=1, max_fraction=0.5),
-        NumberFraction(number=4, min_fraction=0.01),
     ]
 
     OUTPUT_FILE = "scripts/output/batch_analysis.txt"
     # ---------------------
 
     gen = Generator()
-    solver = create_solver(max_complexity=MAX_COMPLEXITY)
 
     print(f"Generating {COUNT} puzzles with settings:")
     print(f"  Size: {ROWS}x{COLS}")
@@ -80,7 +86,14 @@ def main() -> None:
     )
 
     print(f"\nSuccessfully generated {len(puzzles)} puzzles.")
-    print("Analyzing and writing results...")
+    print("Analyzing results in parallel...")
+
+    # Solve puzzles in parallel
+    solve_args = [(p, MAX_COMPLEXITY) for p in puzzles]
+    with multiprocessing.Pool(processes=8) as pool:
+        solved_results = pool.map(solve_puzzle_worker, solve_args)
+
+    print("Writing results to file...")
 
     with open(OUTPUT_FILE, "w") as f:
         f.write("Batch Analysis Report\n")
@@ -93,14 +106,14 @@ def main() -> None:
         f.write(f"  Puzzles rejected by constraints: {stats.puzzles_rejected_constraints}\n")
         f.write(f"  Puzzles rejected by no solution: {stats.puzzles_rejected_no_solution}\n")
         f.write(f"  Puzzles rejected by excessive guessing: {stats.puzzles_rejected_excessive_guessing}\n")
+        f.write(f"  Puzzles rejected by timeout: {stats.puzzles_rejected_timeout}\n")
         if stats.rejections_per_constraint:
             f.write("  Rejections per constraint:\n")
             for name, count in stats.rejections_per_constraint.items():
                 f.write(f"    - {name}: {count}\n")
         f.write("\n")
 
-        for i, puzzle in enumerate(puzzles):
-            res = solver.solve(puzzle, solve_with_min_complexity=True)
+        for i, (puzzle, res) in enumerate(solved_results):
             if res.status == SolverStatus.SOLVED:
                 write_puzzle_analysis(f, i, puzzle, res.puzzle, res)
             else:
@@ -112,6 +125,7 @@ def main() -> None:
     print(f"  Puzzles rejected by constraints: {stats.puzzles_rejected_constraints}")
     print(f"  Puzzles rejected by no solution: {stats.puzzles_rejected_no_solution}")
     print(f"  Puzzles rejected by excessive guessing: {stats.puzzles_rejected_excessive_guessing}")
+    print(f"  Puzzles rejected by timeout: {stats.puzzles_rejected_timeout}")
     for name, count in stats.rejections_per_constraint.items():
         print(f"    - {name}: {count}")
 

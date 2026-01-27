@@ -104,6 +104,8 @@ body {
     padding: 0.2rem 1rem;
     border: 2px solid var(--text-color);
     position: relative;
+    text-decoration: none;
+    display: inline-block;
 }
 
 .logo::after {

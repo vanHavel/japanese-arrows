@@ -53,5 +53,5 @@ Tuesday: Normal, 5x5, Diagonal (x)
 Wednesday: Hard, 6x6 Straight (x)
 Thursday: Hard, 5x5, Diagonal (x)
 Friday: Normal, 5x5, Straight (x)
-Saturday: Devious, 6x6, Diagonal
-Sunday: Devious, 5x5, Straight
+Saturday: Devious, 6x6, Diagonal (x)
+Sunday: Devious, 6x6, Straight (x)
