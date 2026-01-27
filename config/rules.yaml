@@ -34,7 +34,7 @@
     - exclude(p, > sees_distinct(p) + ahead_free(p))
 - name: NEXT_ARROW_SAME_DIRECTION
   condition: |
-    exists p,q (
+    exists q,p (
       val(q) != nil ^
       next(p) = q ^
       dir(p) = dir(q)
@@ -46,9 +46,10 @@
 - name: NEXT_ARROW_SAME_DIRECTION_VAL_SEEN
   condition: |
     exists q,p (
+      val(p) = nil ^
       val(q) != nil ^
-      candidate(p, val(q)) ^
       next(p) = q ^
+      candidate(p, val(q)) ^
       dir(p) = dir(q) ^
       exists r (points_at(q, r) ^ val(r) = val(q))
     )
@@ -83,6 +84,7 @@
     exists p,q (
       val(p) != nil ^
       next(p) = q ^
+      val(q) = nil ^
       dir(p) = dir(q) ^
       exists r (points_at(q, r) ^ val(r) = val(p)-1)
     )
@@ -104,12 +106,13 @@
 - name: TRIPLE_ARROWS_SAME_DIRECTION
   condition: |
     exists p,q,r (
-      val(q) != nil ^
+      val(p) = nil ^
       next(p) = q ^
-      val(r) = val(q) ^
-      next(q) = r ^
       dir(p) = dir(q) ^
-      dir(q) = dir(r)
+      val(q) != nil ^
+      next(q) = r ^
+      dir(q) = dir(r) ^
+      val(r) = val(q) 
     )
   kind: FO
   complexity: 2
@@ -175,19 +178,16 @@
     - exclude(p, sees_distinct(p))
 - name: ALL_DISTINCT
   condition: |
-    exists p,q,r (
+    exists p,i,r (
       sees_distinct(p) + ahead_free(p) = val(p) ^
-      points_at(p, q) ^
-      val(q) != nil ^
+      sees_value(p, i) ^
       points_at(p, r) ^
-      q != r ^
-      val(r) = nil ^
-      candidate(r, val(q))
+      val(r) = nil
     )
   kind: FO
   complexity: 3
   conclusions:
-    - exclude(r, val(q))
+    - exclude(r, i)
 - name: SEE_ALL_OPTIONS
   condition: |
     exists p,q,j (

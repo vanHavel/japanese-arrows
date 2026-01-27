@@ -23,8 +23,6 @@ class Variable(Term):
         return self.name
 
     def eval(self, universe: "Universe", assignment: dict[str, Any]) -> Any:
-        if self.name not in assignment:
-            raise KeyError(f"Variable {self.name} not in assignment")
         return assignment[self.name]
 
 
@@ -189,15 +187,19 @@ class ExistsPosition(Quantifier):
             elements = elements - universe.quantifier_exclusions[domain_type]
 
         names = [v.name for v in self.variables]
-        for values in itertools.product(elements, repeat=len(self.variables)):
-            new_assignment = assignment.copy()
-            current_witness: dict[str, Any] = {}
-            for name, val in zip(names, values):
-                new_assignment[name] = val
-                current_witness[name] = val
+        try:
+            for values in itertools.product(elements, repeat=len(self.variables)):
+                current_witness: dict[str, Any] = {}
+                for name, val in zip(names, values):
+                    assignment[name] = val
+                    current_witness[name] = val
 
-            for inner_witness in self.formula.check(universe, new_assignment):
-                yield current_witness | inner_witness
+                for inner_witness in self.formula.check(universe, assignment):
+                    yield current_witness | inner_witness
+        finally:
+            for name in names:
+                if name in assignment:
+                    del assignment[name]
 
 
 @dataclass
@@ -218,15 +220,19 @@ class ExistsNumber(Quantifier):
             elements = elements - universe.quantifier_exclusions[domain_type]
 
         names = [v.name for v in self.variables]
-        for values in itertools.product(elements, repeat=len(self.variables)):
-            new_assignment = assignment.copy()
-            current_witness: dict[str, Any] = {}
-            for name, val in zip(names, values):
-                new_assignment[name] = val
-                current_witness[name] = val
+        try:
+            for values in itertools.product(elements, repeat=len(self.variables)):
+                current_witness: dict[str, Any] = {}
+                for name, val in zip(names, values):
+                    assignment[name] = val
+                    current_witness[name] = val
 
-            for inner_witness in self.formula.check(universe, new_assignment):
-                yield current_witness | inner_witness
+                for inner_witness in self.formula.check(universe, assignment):
+                    yield current_witness | inner_witness
+        finally:
+            for name in names:
+                if name in assignment:
+                    del assignment[name]
 
 
 @dataclass
@@ -247,14 +253,18 @@ class ForAllPosition(Quantifier):
             elements = elements - universe.quantifier_exclusions[domain_type]
 
         names = [v.name for v in self.variables]
-        for values in itertools.product(elements, repeat=len(self.variables)):
-            new_assignment = assignment.copy()
-            for name, val in zip(names, values):
-                new_assignment[name] = val
+        try:
+            for values in itertools.product(elements, repeat=len(self.variables)):
+                for name, val in zip(names, values):
+                    assignment[name] = val
 
-            first_inner = next(self.formula.check(universe, new_assignment), None)
-            if first_inner is None:
-                return
+                first_inner = next(self.formula.check(universe, assignment), None)
+                if first_inner is None:
+                    return
+        finally:
+            for name in names:
+                if name in assignment:
+                    del assignment[name]
 
         yield {}
 
@@ -277,14 +287,18 @@ class ForAllNumber(Quantifier):
             elements = elements - universe.quantifier_exclusions[domain_type]
 
         names = [v.name for v in self.variables]
-        for values in itertools.product(elements, repeat=len(self.variables)):
-            new_assignment = assignment.copy()
-            for name, val in zip(names, values):
-                new_assignment[name] = val
+        try:
+            for values in itertools.product(elements, repeat=len(self.variables)):
+                for name, val in zip(names, values):
+                    assignment[name] = val
 
-            first_inner = next(self.formula.check(universe, new_assignment), None)
-            if first_inner is None:
-                return
+                first_inner = next(self.formula.check(universe, assignment), None)
+                if first_inner is None:
+                    return
+        finally:
+            for name in names:
+                if name in assignment:
+                    del assignment[name]
 
         yield {}
 

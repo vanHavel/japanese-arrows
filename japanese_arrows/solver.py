@@ -96,9 +96,20 @@ class Solver:
             progress_made = False
             for rule in self.rules:
                 start_time = time.perf_counter()
-                result = self._try_apply_rule(puzzle, rule, universe, path_cache)
-                duration = time.perf_counter() - start_time
-                rule_execution_time[rule.name] = rule_execution_time.get(rule.name, 0.0) + duration
+                # Capture total time attributed so far to subtract "children" time later
+                stats_sum_before = sum(rule_execution_time.values())
+
+                result = self._try_apply_rule(puzzle, rule, universe, path_cache, rule_execution_time)
+
+                end_time = time.perf_counter()
+                total_duration = end_time - start_time
+                stats_sum_after = sum(rule_execution_time.values())
+
+                # "Self time" is total wall time minus time claimed by inner rules
+                children_time = stats_sum_after - stats_sum_before
+                self_time = max(0.0, total_duration - children_time)
+
+                rule_execution_time[rule.name] = rule_execution_time.get(rule.name, 0.0) + self_time
 
                 if result.status == SolverStatus.NO_SOLUTION:
                     return SolverResult(
@@ -141,9 +152,10 @@ class Solver:
         rule: Rule,
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+        timing_stats: dict[str, float],
     ) -> SolverResult:
         if isinstance(rule, BacktrackRule):
-            return self._apply_backtrack_rule(puzzle, rule, universe, path_cache)
+            return self._apply_backtrack_rule(puzzle, rule, universe, path_cache, timing_stats)
 
         if not isinstance(rule, FORule):
             return SolverResult(
@@ -236,6 +248,7 @@ class Solver:
         rule: BacktrackRule,
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
+        timing_stats: dict[str, float],
     ) -> SolverResult:
         candidates_map: list[tuple[int, int, set[int]]] = []
         for r in range(puzzle.rows):
@@ -265,8 +278,8 @@ class Solver:
                     contradiction_found = False
                     trace: list[str] | None = None
 
-                    trace = self._find_contradiction_dfs(
-                        puzzle, hypothesis_rules, universe, path_cache, rule.rule_depth
+                    trace = self._find_contradiction_optimized(
+                        puzzle, hypothesis_rules, universe, path_cache, rule.rule_depth, timing_stats
                     )
                     if trace is not None:
                         contradiction_found = True
@@ -315,63 +328,77 @@ class Solver:
             steps=[],
         )
 
-    def _find_contradiction_dfs(
+    def _find_contradiction_optimized(
         self,
         puzzle: Puzzle,
         rules: list[Rule],
         universe: Universe,
         path_cache: dict[tuple[int, int], list[tuple[int, int]]],
-        budget: int,
+        depth: int,
+        timing_stats: dict[str, float],
     ) -> list[str] | None:
-        valid, reason, loc = self._check_consistency(puzzle, path_cache)
+        # Check initial consistency (depth 0 check)
+        valid, reason, _ = self._check_consistency(puzzle, path_cache)
         if not valid:
             return [f"Inconsistent state: {reason}"]
 
-        if budget <= 0:
+        if depth <= 0:
             return None
 
-        # Gather all applicable moves (rule, witness, conclusion)
-        # Note: This can be expensive; we re-evaluate all rules at each node.
-        moves: list[tuple[Rule, dict[str, Any], Conclusion]] = []
-
+        # Optimization: Interleave generation and application (Fail Fast)
         for rule in rules:
             if not isinstance(rule, FORule):
                 continue
 
-            # Since we modify the grid in place, checks must be dynamic
-            witnesses = universe.check_all(rule.condition)
-            for witness in witnesses:
-                for conclusion in rule.conclusions:
-                    # Check if conclusion would make progress (without fully applying)
-                    # We can reuse _apply_conclusion logic but we need to know if it progresses
-                    # For performance, we might just try applying it.
-                    moves.append((rule, witness, conclusion))
+            t0 = time.perf_counter()
+            stats0 = sum(timing_stats.values())
 
-        # Heuristic: Try moves? Or just iterate.
-        # Simple DFS:
-        for rule, witness, conclusion in moves:
-            undo_op = self._apply_conclusion_with_undo(puzzle, conclusion, witness, universe)
+            try:
+                # Iterate witnesses and apply immediately
+                for witness in universe.check_all(rule.condition):
+                    for conclusion in rule.conclusions:
+                        # Try applying with undo
+                        undo_op = self._apply_conclusion_with_undo(puzzle, conclusion, witness, universe)
 
-            if undo_op is None:
-                # No progress
-                continue
+                        if undo_op is None:
+                            continue  # No progress
 
-            step_desc = f"Applied {rule.name} with {witness} -> {conclusion}"
+                        step_desc = f"Applied {rule.name} with {witness} -> {conclusion}"
 
-            # Check for immediate contradiction
-            if undo_op == "CONTRADICTION":
-                return [step_desc, "CONTRADICTION"]
+                        if undo_op == "CONTRADICTION":
+                            return [step_desc, "CONTRADICTION"]
 
-            # Recurse
-            trace = self._find_contradiction_dfs(puzzle, rules, universe, path_cache, budget - 1)
-            if trace is not None:
-                if callable(undo_op):
-                    undo_op()
-                return [step_desc] + trace
+                        # If successful progress, check deeper
+                        # Optimization: For depth 1, we just need to check consistency of the new state
+                        # which happens at the start of the recursive call.
+                        # For depth > 1, we recurse fully.
 
-            # Backtrack
-            if callable(undo_op):
-                undo_op()
+                        trace = None
+                        if depth == 1:
+                            # Depth 1 specialized: just check consistency of result
+                            valid_next, reason_next, _ = self._check_consistency(puzzle, path_cache)
+                            if not valid_next:
+                                trace = [f"Inconsistent state: {reason_next}"]
+                        else:
+                            # Depth > 1: Full recursion
+                            trace = self._find_contradiction_optimized(
+                                puzzle, rules, universe, path_cache, depth - 1, timing_stats
+                            )
+
+                        if trace is not None:
+                            if callable(undo_op):
+                                undo_op()
+                            return [step_desc] + trace
+
+                        # Backtrack this step
+                        if callable(undo_op):
+                            undo_op()
+            finally:
+                t1 = time.perf_counter()
+                stats1 = sum(timing_stats.values())
+                children_time = stats1 - stats0
+                self_time = max(0.0, (t1 - t0) - children_time)
+                timing_stats[rule.name] = timing_stats.get(rule.name, 0.0) + self_time
 
         return None
 
