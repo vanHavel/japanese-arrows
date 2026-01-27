@@ -85,9 +85,6 @@ class Generator:
                     failing_constraint = self._get_failing_constraint(final_trace, constraints)
                     if failing_constraint is None:
                         stats.puzzles_successfully_generated += 1
-
-                        # Return a puzzle that only has the guesses
-                        # clean_puzzle is exactly what we need
                         return clean_puzzle, stats
                     else:
                         stats.puzzles_rejected_constraints += 1
@@ -270,7 +267,6 @@ class Generator:
                             last_logged_attempts = total_attempts
 
                     except Exception:
-                        # Log error if possible, or just continue
                         pass
 
                     if len(puzzles) < count:

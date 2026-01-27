@@ -37,7 +37,7 @@ Current feasible generation limits:
   - 6x6 for diagonal
 - max_complexity: 5
   - 7x7 for straight
-  - 7x7 for diagonal
+  - 8x8 for diagonal
 - max_complexity: 4
   - unsuccesful for straight
   - unsuccesful for diagonal

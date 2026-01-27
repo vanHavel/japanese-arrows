@@ -26,7 +26,7 @@ def write_puzzle_as_svg(puzzle: Puzzle, file_path: str, cell_size: int = 120) ->
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         "<defs>",
         "  <style>",
-        "    text { font-family: sans-serif; pointer-events: none; }",
+        "    text { font-family: 'Noto Serif JP', 'serif'; pointer-events: none; }",
         "    .candidate { font-size: 14px; fill: #222; font-weight: bold; }",
         "    .number { font-size: 34px; font-weight: bold; fill: black; }",
         "  </style>",
@@ -46,25 +46,18 @@ def write_puzzle_as_svg(puzzle: Puzzle, file_path: str, cell_size: int = 120) ->
 
             # Arrow Rotation
             dr, dc = cell.direction.delta
-            # atan2(y, x). y=dr, x=dc.
             angle_rad = math.atan2(dr, dc)
             angle_deg = math.degrees(angle_rad)
 
-            # Arrow Shape
-            # New Proposal: Slightly thinner ("less chonky")
-            # Tail from -35 to 15. Width +/- 24 (total 48).
-            # Head from 15 to 45. Width +/- 40 (total 80) at base.
-
             lines.append(f'<g transform="rotate({angle_deg})">')
             lines.append(
-                '<path d="M -35 -24 L 15 -24 L 15 -40 L 45 0 L 15 40 L 15 24 L -35 24 Z" '
-                'fill="#e0e0e0" stroke="black" stroke-width="2"/>'
+                '<path d="M -45 -25 Q -12 -30 20 -28 L 20 -48 Q 40 -25 55 0 Q 40 25 20 48 '
+                'L 20 28 Q -12 30 -45 25 Q -40 0 -45 -25 Z" '
+                'fill="white" stroke="#333333" stroke-width="3"/>'
             )
             lines.append("</g>")
 
             # Content
-            # Note: We do NOT rotate text, so it remains upright.
-            # The arrow was designed such that its center (0,0) has significant coverage.
             if cell.number is not None:
                 lines.append(
                     f'<text x="0" y="0" text-anchor="middle" dominant-baseline="central" '

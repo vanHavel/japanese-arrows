@@ -9,3 +9,7 @@ japanese_arrows:
 - generator:
   - generator.py: logic for creating new puzzles
   - constraints.py: validation rules for generated puzzles
+- site_gen:
+  - archive.py: generates archive index
+  - assets.py: generates arrow assets
+  - sync.py: syncs puzzles to server

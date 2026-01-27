@@ -23,8 +23,9 @@ def generate_arrow_svg(direction: Direction, output_dir: Path) -> None:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         f'<g transform="translate({cx},{cy})">',
         f'<g transform="rotate({angle_deg})">',
-        '<path d="M -45 -28 L 20 -28 L 20 -48 L 55 0 L 20 48 L 20 28 L -45 28 Z" '
-        'fill="white" stroke="black" stroke-width="2"/>',
+        '<path d="M -45 -25 Q -12 -30 20 -28 L 20 -48 Q 40 -25 55 0 Q 40 25 20 48 '
+        'L 20 28 Q -12 30 -45 25 Q -40 0 -45 -25 Z" '
+        'fill="white" stroke="#333333" stroke-width="3"/>',
         "</g>",
         "</g>",
         "</svg>",

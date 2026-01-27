@@ -41,8 +41,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 sortDir = sortDir === 'asc' ? 'desc' : 'asc';
             } else {
                 sortField = field;
-                sortDir = 'desc'; // Default desc for new field? or asc?
-                // For date usually desc. For difficulty asc?
+                sortDir = 'desc';
                 if (field === 'date') sortDir = 'desc';
                 else sortDir = 'asc';
             }
@@ -101,7 +100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             let valA = a[sortField];
             let valB = b[sortField];
 
-            // Order difficulty specifically?
             if (sortField === 'difficulty') {
                 const diffOrder = { 'Easy': 1, 'Normal': 2, 'Hard': 3, 'Devious': 4, 'Unknown': 5 };
                 valA = diffOrder[valA] || 99;
@@ -147,15 +145,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
 
             // Format Arrows
-            // "Straight" -> "→", "Diagonal" -> "→ ↗" (assuming diagonal implies both or just diagonal?)
-            // Usually "Straight" means ortho. "Diagonal" might mean octilinear or just diagonal.
-            // Based on user request "show arrow E for straight, and arrow E and NE for diagonal".
-            // Let's assume input is "Straight" or "Diagonal".
             let arrowDisplay = puzzle.arrows;
             if (arrowDisplay === 'Straight') {
                 arrowDisplay = '<span title="Straight">→</span>';
             } else if (arrowDisplay === 'Diagonal') {
-                arrowDisplay = '<span title="Diagonal">→ ↗</span>'; // implies mixed or diagonal 
+                arrowDisplay = '<span title="Diagonal">→ ↗</span>';
             }
 
             tr.innerHTML = `

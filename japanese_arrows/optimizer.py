@@ -101,7 +101,6 @@ def optimize(phi: Formula) -> Formula:
                 pushed_q = constructor([v], sub_formula)
 
                 # Update current_conjuncts: replace using_v with [pushed_q]
-                # But proceed carefully. We modify the pool of conjuncts for subsequent variables.
                 current_conjuncts = not_using_v + [pushed_q]
             else:
                 if not using_v:
@@ -111,8 +110,7 @@ def optimize(phi: Formula) -> Formula:
 
         # Reconstruct result
         if not current_conjuncts:
-            # Empty? Should not happen if original wasn't empty.
-            return And([])  # True
+            return And([])
 
         # Combine conjuncts
         if len(current_conjuncts) == 1:

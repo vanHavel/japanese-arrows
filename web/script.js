@@ -3,8 +3,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const DEFAULT_DATE = '2026-01-25'; // Default to today/latest
     const MIN_DATE = '2026-01-24'; // Earliest available puzzle
 
-    // Determine MAX_DATE dynamically based on user's today, clamped to the latest known puzzle date if we want strictly served puzzles.
-    // However, the user said "Max date can be based on today". So we'll use today's date.
     const today = new Date();
     const yyyy = today.getFullYear();
     const mm = String(today.getMonth() + 1).padStart(2, '0');
@@ -249,14 +247,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const parts = contentLines[r].trim().split('|').filter(p => p.length > 0);
 
             for (let c = 0; c < puzzle.cols; c++) {
-                const cellStr = parts[c].trim(); // e.g., "↓." or "↓3" or "←."
-                // Format seems to be ArrowChar + (Digit or Dot) usually 2 chars, or space padded?
-                // Based on zeiger_1.txt: " ↓. " (padded)
-
-                // Let's extract based on regex or simplified parsing
-                // Assuming standard arrow chars and possibly numbers
-                // Arrow chars: ↑ ↓ ← → ↖ ↗ ↘ ↙
-
+                const cellStr = parts[c].trim();
                 const arrowMatch = cellStr.match(/[↑↓←→↖↗↘↙]/);
                 const valMatch = cellStr.match(/\d/);
 
@@ -360,17 +351,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             markSpan.textContent = stateData.marks.has(String(i)) || stateData.marks.has(i) ? i : '';
                             marksDiv.appendChild(markSpan);
                         }
-                        // 0 is usually not used in pencil marks in standard sudoku-like logic but here values are 0-9?
-                        // zeiger_1 has 0-9? 
-                        // Wait, puzzle usually has digits. If 0 is possible, we need space for it.
-                        // Standard 3x3 grid fits 1-9. Where to put 0?
-                        // Maybe top or center? For now let's assume 1-9 pencil marks. 
-                        // If 0 is valid, we might need a different layout or just ignore 0 for pencil.
-                        // Let's add 0 to the set check but maybe it won't be shown nicely in 3x3.
-                        // Handle 0 key specifically? 
                         if (stateData.marks.has('0') || stateData.marks.has(0)) {
-                            // Maybe overlay it or put it in position 5?
-                            // For simplicity: just 1-9 for now in grid. 
                         }
 
                         cell.appendChild(marksDiv);
@@ -486,14 +467,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const effectiveMode = (userState.isCtrlPressed && userState.mode === 'pen') ? 'pencil' : userState.mode;
 
         if (val === null) {
-            // Delete action
-            // If has value, clear value.
-            // If no value but marks, clear marks? 
             userState.grid[r][c].val = null;
             userState.grid[r][c].marks.clear();
         } else {
             if (effectiveMode === 'pen') {
-                // Set value, clear marks
                 userState.grid[r][c].val = val;
                 userState.grid[r][c].marks.clear();
                 // Clear error state on new input
@@ -507,11 +484,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     userState.grid[r][c].marks.add(val);
                 }
-                // Don't clear value if pencil marking? usually one or other.
-                // If value exists, pencil marks are usually hidden or disabled.
-                // Let's clear value if adding marks to avoid confusion.
                 userState.grid[r][c].val = null;
-                userState.grid[r][c].isError = false; // Clear error
+                userState.grid[r][c].isError = false;
             }
         }
         renderGrid();

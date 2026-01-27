@@ -222,6 +222,7 @@
     z-index: 10;
     color: var(--primary-color);
     pointer-events: none;
+    font-family: 'Noto Serif JP', serif;
 }
 
 .cell-value.initial {
@@ -247,13 +248,14 @@
 }
 
 .pencil-mark {
-    font-size: 1rem;
+    font-size: 1.25rem;
     font-weight: 600;
     color: var(--pencil-color);
     display: flex;
     justify-content: center;
     align-items: center;
     line-height: 1;
+    font-family: 'Noto Serif JP', serif;
 }
 
 /* Control Buttons */

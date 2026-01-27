@@ -43,11 +43,6 @@ def test_valid_formulas(
     constants, functions, relations = type_context
 
     # Valid Relation
-    # points_at(p1, d1, p2) - assuming we had valid variables or constants
-    # Using constants for simplicity in basic test since variables need Quantifiers
-    # We don't have DIRECTION constants in the fixture yet, let's add one locally or mock
-    # Actually, let's use relations we have fully defined constants for or wrapped in quantifiers
-
     # Exists p1, p2: eq_pos(p1, p2)
     f1 = ExistsPosition(
         [Variable("p1"), Variable("p2")],
@@ -107,9 +102,6 @@ def test_nested_quantifiers(
     constants, functions, relations = type_context
 
     # ForAll p: (Exists n: row(p) > n)
-    # > is (Number, Number)
-    # row(p) is Number
-    # n is Number
     f = ForAllPosition(
         [Variable("p")],
         ExistsNumber(
@@ -124,7 +116,6 @@ def test_constants_type_check(
     type_context: tuple[dict[str, Type], dict[str, FunctionSignature], dict[str, RelationSignature]],
 ) -> None:
     constants, functions, relations = type_context
-    # OOB is Position, ZERO is Number
 
     # Valid: eq_pos(OOB, OOB)
     f1 = Relation("eq_pos", [Constant("OOB"), Constant("OOB")])
@@ -194,19 +185,7 @@ def test_check_rule_calculation_conclusion(
 ) -> None:
     constants, functions, relations = type_context
 
-    # Rule: Exists p -> set(p, val(p) + 1)
-    # Note: Calculation wrapper for +
-    # We need a Calculation object.
-
-    # Rule: Exists p -> set(p, val(p) + 1)
-    # Note: Calculation wrapper for +
-    # We need a Calculation object.
-
     p = Variable("p")
-
-    # Let's test binding in condition:
-    # Exists p, n (val(p) = n) -> set(p, n + 1)
-
     n = Variable("n")
     cond_bind = ExistsPosition([p], ExistsNumber([n], Relation("eq_num", [FunctionCall("val", [p]), n])))
 
@@ -221,8 +200,6 @@ def test_check_rule_forall_scope_exclusion(
 ) -> None:
     constants, functions, relations = type_context
 
-    # Rule: Exists p (ForAll q (p = q)) -> set(q, 5)
-    # Variable q is bound by ForAll, so it should NOT be available in conclusion.
     # Rule: Exists p (ForAll q (p = q)) -> set(q, 5)
     # Variable q is bound by ForAll, so it should NOT be available in conclusion.
     p = Variable("p")

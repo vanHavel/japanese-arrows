@@ -57,13 +57,9 @@ def check_rule(
     check_condition(rule.condition, constants, functions, relations)
 
     # 2. Gather variables from condition (Exists quantifiers)
-    # The rule applies effectively "For All" matches of the condition, so
-    # variables bound by Exists... in the condition become available in the conclusion
-    # for that specific match.
     scope: dict[str, Type] = {}
     _gather_condition_variables(rule.condition, scope)
 
-    # 3. Check conclusions
     # 3. Check conclusions
     for conclusion in rule.conclusions:
         _check_conclusion(conclusion, constants, scope, functions)

@@ -2,8 +2,6 @@ name: Update Release Date
 
 on:
   schedule:
-    # 10am Europe/Berlin is 09:00 UTC (in standard time/winter) and 08:00 UTC (in summer).
-    # Setting to 09:00 UTC ensures it is roughly morning in Berlin (10am or 11am).
     - cron: '0 9 * * *'
   workflow_dispatch:
 

@@ -59,9 +59,9 @@ def main() -> None:
     COUNT = 1
 
     CONSTRAINTS = [
-        FollowingArrowsFraction(min_fraction=0.1),
+        FollowingArrowsFraction(min_fraction=0.05),
         RuleComplexityFraction(complexity=5, min_count=1),
-        NumberFraction(number=1, max_fraction=0.5),
+        NumberFraction(number=1, max_fraction=0.4),
     ]
 
     OUTPUT_FILE = "scripts/output/batch_analysis.txt"

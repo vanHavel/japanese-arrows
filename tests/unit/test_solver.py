@@ -40,7 +40,7 @@ def test_create_universe_geometry() -> None:
     grid = [[Cell(Direction.EAST, None), Cell(Direction.EAST, None), Cell(Direction.EAST, None)]]
     puzzle = Puzzle(rows=1, cols=3, grid=grid)
     solver = Solver([])
-    solver._initialize_candidates(puzzle)  # Needed? Not for just creating universe for test, but good practice
+    solver._initialize_candidates(puzzle)
 
     universe = solver._create_universe(puzzle)
 
@@ -118,10 +118,6 @@ def test_apply_simple_rule() -> None:
 
     p_var = Variable("p")
     # Condition: exists p (val(p) = nil)
-    # Note: val(p) returns "nil" (string) if number is None.
-    # Equality check: val(p) == "nil"
-    # But wait, ConditionConstant("nil") evaluates to "nil" via Universe lookup if "nil" is in constants?
-    # Yes, Solver adds "nil" to constants.
 
     cond = ExistsPosition([p_var], Equality(FunctionCall("val", [p_var]), Constant("nil")))
 
