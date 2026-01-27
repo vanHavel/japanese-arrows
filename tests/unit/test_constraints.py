@@ -1,7 +1,9 @@
 from unittest.mock import MagicMock
 
 from japanese_arrows.generator.constraints import (
+    FollowingArrowsFraction,
     NumberFraction,
+    PrefilledCellsFraction,
     RuleComplexityFraction,
     UsesRule,
 )
@@ -154,76 +156,6 @@ def test_number_fraction() -> None:
     assert constraint.check(trace) is False
 
 
-def test_number_fraction_pre_check() -> None:
-    from japanese_arrows.models import Cell, Direction, Puzzle
-
-    # 3x3 grid, all arrows point NORTH
-    # (0,0) (0,1) (0,2)  <- All point NORTH (out of bounds), path_length=0
-    # (1,0) (1,1) (1,2)  <- All point NORTH, path_length=1
-    # (2,0) (2,1) (2,2)  <- All point NORTH, path_length=2
-
-    grid = [[Cell(Direction.NORTH) for _ in range(3)] for _ in range(3)]
-    puzzle = Puzzle(3, 3, grid)
-
-    # Possible counts for number 1:
-    # Row 0: path_length 0 -> NO
-    # Row 1: path_length 1 -> YES
-    # Row 2: path_length 2 -> YES
-    # Total possible for number 1: 6 / 9 = 0.666...
-
-    constraint = NumberFraction(number=1, min_fraction=0.7)
-    assert constraint.pre_check(puzzle) is False
-
-    constraint = NumberFraction(number=1, min_fraction=0.6)
-    assert constraint.pre_check(puzzle) is True
-
-    # Possible counts for number 2:
-    # Row 0: path_length 0 -> NO
-    # Row 1: path_length 1 -> NO
-    # Row 2: path_length 2 -> YES
-    # Total possible for number 2: 3 / 9 = 0.333...
-
-    constraint = NumberFraction(number=2, min_fraction=0.4)
-    assert constraint.pre_check(puzzle) is False
-
-    constraint = NumberFraction(number=2, min_fraction=0.3)
-    assert constraint.pre_check(puzzle) is True
-
-    # Possible counts for number 3:
-    # All rows: NO (max path length is 2)
-    constraint = NumberFraction(number=3, min_fraction=0.01)
-    assert constraint.pre_check(puzzle) is False
-
-    # Outward pointing arrows on edges specifically
-    # 2x2 grid, all point outward
-    grid2 = [
-        [Cell(Direction.NORTH), Cell(Direction.NORTH)],
-        [Cell(Direction.SOUTH), Cell(Direction.SOUTH)],
-    ]
-    puzzle2 = Puzzle(2, 2, grid2)
-    # 4/4 = 1.0 are 0s
-    constraint0 = NumberFraction(number=0, min_fraction=1.0)
-    assert constraint0.pre_check(puzzle2) is True
-
-    constraint0_fail = NumberFraction(number=0, max_fraction=0.9)
-    assert constraint0_fail.pre_check(puzzle2) is False
-
-    # Test number 1
-    # 2x2 grid, (0,0) and (0,1) point SOUTH, (1,0) and (1,1) point NORTH
-    # All paths have length 1.
-    grid3 = [
-        [Cell(Direction.SOUTH), Cell(Direction.SOUTH)],
-        [Cell(Direction.NORTH), Cell(Direction.NORTH)],
-    ]
-    puzzle3 = Puzzle(2, 2, grid3)
-    # All cells have path_length 1, so all MUST be 1s.
-    constraint1 = NumberFraction(number=1, min_fraction=1.0)
-    assert constraint1.pre_check(puzzle3) is True
-
-    constraint1_fail = NumberFraction(number=1, max_fraction=0.9)
-    assert constraint1_fail.pre_check(puzzle3) is False
-
-
 def test_following_arrows_fraction() -> None:
     from japanese_arrows.models import Cell, Direction, Puzzle
 
@@ -238,13 +170,14 @@ def test_following_arrows_fraction() -> None:
     ]
     puzzle = Puzzle(2, 2, grid)
 
-    from japanese_arrows.generator.constraints import FollowingArrowsFraction
+    trace = MagicMock()
+    trace.puzzle = puzzle
 
     constraint = FollowingArrowsFraction(min_fraction=0.4, max_fraction=0.6)
-    assert constraint.pre_check(puzzle) is True
+    assert constraint.check(trace) is True
 
     constraint_fail = FollowingArrowsFraction(min_fraction=0.6)
-    assert constraint_fail.pre_check(puzzle) is False
+    assert constraint_fail.check(trace) is False
 
     # 2x2 grid, all point NORTH
     # (1,0) points at (0,0), both NORTH -> count 1
@@ -256,7 +189,9 @@ def test_following_arrows_fraction() -> None:
         [Cell(Direction.NORTH), Cell(Direction.NORTH)],
     ]
     puzzle2 = Puzzle(2, 2, grid2)
-    assert FollowingArrowsFraction(min_fraction=0.5).pre_check(puzzle2) is True
+    trace2 = MagicMock()
+    trace2.puzzle = puzzle2
+    assert FollowingArrowsFraction(min_fraction=0.5).check(trace2) is True
 
     # 3x1 grid, all point SOUTH
     # (0,0) points at (1,0), both SOUTH -> count 1
@@ -265,7 +200,9 @@ def test_following_arrows_fraction() -> None:
     # Fraction: 2/3 = 0.66
     grid3 = [[Cell(Direction.SOUTH)], [Cell(Direction.SOUTH)], [Cell(Direction.SOUTH)]]
     puzzle3 = Puzzle(3, 1, grid3)
-    assert FollowingArrowsFraction(min_fraction=0.6, max_fraction=0.7).pre_check(puzzle3) is True
+    trace3 = MagicMock()
+    trace3.puzzle = puzzle3
+    assert FollowingArrowsFraction(min_fraction=0.6, max_fraction=0.7).check(trace3) is True
 
 
 def test_uses_rule() -> None:
@@ -306,7 +243,6 @@ def test_uses_rule() -> None:
 
 
 def test_prefilled_cells_fraction() -> None:
-    from japanese_arrows.generator.constraints import PrefilledCellsFraction
     from japanese_arrows.models import Cell, Direction, Puzzle
 
     # 2x2 grid

@@ -17,7 +17,6 @@ def main() -> None:
     cols = 6
     allow_diagonals = False
     max_complexity = 6
-    prefilled_cells_count = 0
 
     constraints = [
         FollowingArrowsFraction(min_fraction=0.05),
@@ -34,7 +33,6 @@ def main() -> None:
         allow_diagonals=allow_diagonals,
         max_complexity=max_complexity,
         constraints=constraints,
-        prefilled_cells_count=prefilled_cells_count,
     )
 
     puzzle = None

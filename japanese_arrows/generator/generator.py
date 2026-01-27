@@ -33,7 +33,6 @@ class Generator:
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
-        prefilled_cells_count: int = 0,
         max_attempts: int = 100,
         _stats: GenerationStats | None = None,
     ) -> tuple[Puzzle | None, GenerationStats]:
@@ -58,21 +57,6 @@ class Generator:
 
             self._flip_outward_arrows(current_puzzle)
 
-            if prefilled_cells_count > 0:
-                self._prefill_cells(current_puzzle, prefilled_cells_count)
-
-            failed_pre_check = False
-            for constraint in constraints:
-                if not constraint.pre_check(current_puzzle):
-                    stats.puzzles_rejected_constraints += 1
-                    stats.rejections_per_constraint[constraint.name] = (
-                        stats.rejections_per_constraint.get(constraint.name, 0) + 1
-                    )
-                    failed_pre_check = True
-                    break
-            if failed_pre_check:
-                continue
-
             path_cache = compute_all_paths(current_puzzle)
             reuse_candidates = False
             base_puzzle = copy.deepcopy(current_puzzle)
@@ -83,7 +67,6 @@ class Generator:
                     current_puzzle,
                     path_cache=path_cache,
                     reuse_candidates=reuse_candidates,
-                    solve_with_min_complexity=True,
                 )
 
                 if trace.status == SolverStatus.SOLVED:
@@ -97,14 +80,13 @@ class Generator:
                         clean_puzzle,
                         path_cache=path_cache,
                         reuse_candidates=False,
-                        solve_with_min_complexity=True,
                     )
 
                     failing_constraint = self._get_failing_constraint(final_trace, constraints)
                     if failing_constraint is None:
                         stats.puzzles_successfully_generated += 1
 
-                        # Return a puzzle that only has the guesses and prefilled numbers
+                        # Return a puzzle that only has the guesses
                         # clean_puzzle is exactly what we need
                         return clean_puzzle, stats
                     else:
@@ -196,7 +178,6 @@ class Generator:
         allow_diagonals: bool,
         max_complexity: int,
         constraints: list[Constraint],
-        prefilled_cells_count: int = 0,
         n_jobs: int = 1,
         timeout_seconds: int = 600,
     ) -> tuple[list[Puzzle], GenerationStats]:
@@ -223,7 +204,6 @@ class Generator:
                                 "allow_diagonals": allow_diagonals,
                                 "max_complexity": max_complexity,
                                 "constraints": constraints,
-                                "prefilled_cells_count": prefilled_cells_count,
                                 "max_attempts": 1,
                             },
                         ),
@@ -305,7 +285,6 @@ class Generator:
                                         "allow_diagonals": allow_diagonals,
                                         "max_complexity": max_complexity,
                                         "constraints": constraints,
-                                        "prefilled_cells_count": prefilled_cells_count,
                                         "max_attempts": 1,
                                     },
                                 ),
@@ -340,29 +319,6 @@ class Generator:
             if not c.check(trace):
                 return c
         return None
-
-    def _prefill_cells(self, puzzle: Puzzle, count: int) -> None:
-        all_coords = [(r, c) for r in range(puzzle.rows) for c in range(puzzle.cols)]
-
-        count = min(count, len(all_coords))
-
-        selected_coords = random.sample(all_coords, count)
-
-        max_dim = max(puzzle.rows, puzzle.cols)
-
-        for r, c in selected_coords:
-            path_len = 0
-            cell = puzzle.grid[r][c]
-            dr, dc = cell.direction.delta
-            curr_r, curr_c = r + dr, c + dc
-            while 0 <= curr_r < puzzle.rows and 0 <= curr_c < puzzle.cols:
-                path_len += 1
-                curr_r += dr
-                curr_c += dc
-
-            upper_bound = min(path_len, max_dim - 1)
-            val = random.randint(0, upper_bound)
-            puzzle.grid[r][c].number = val
 
     def _flip_outward_arrows(self, puzzle: Puzzle) -> None:
         rows = puzzle.rows

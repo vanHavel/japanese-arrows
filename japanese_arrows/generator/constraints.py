@@ -10,9 +10,6 @@ class Constraint(ABC):
     def check(self, trace: SolverResult) -> bool:
         pass
 
-    def pre_check(self, puzzle: Puzzle) -> bool:
-        return True
-
     @property
     def name(self) -> str:
         return self.__class__.__name__
@@ -86,49 +83,6 @@ class NumberFraction(Constraint):
 
         return True
 
-    def pre_check(self, puzzle: Puzzle) -> bool:
-        total_cells = puzzle.rows * puzzle.cols
-        if total_cells == 0:
-            return True
-
-        path_lengths = []
-        for r in range(puzzle.rows):
-            for c in range(puzzle.cols):
-                cell = puzzle.grid[r][c]
-                dr, dc = cell.direction.delta
-                length = 0
-                curr_r, curr_c = r + dr, c + dc
-                while 0 <= curr_r < puzzle.rows and 0 <= curr_c < puzzle.cols:
-                    length += 1
-                    curr_r += dr
-                    curr_c += dc
-                path_lengths.append(length)
-
-        if self.number == 0:
-            count = sum(1 for length in path_lengths if length == 0)
-            fraction = count / total_cells
-            if self.min_fraction is not None and fraction < self.min_fraction:
-                return False
-            if self.max_fraction is not None and fraction > self.max_fraction:
-                return False
-            return True
-
-        if self.number == 1:
-            min_count = sum(1 for length in path_lengths if length == 1)
-            max_count = sum(1 for length in path_lengths if length >= 1)
-
-            if self.min_fraction is not None and max_count / total_cells < self.min_fraction:
-                return False
-            if self.max_fraction is not None and min_count / total_cells > self.max_fraction:
-                return False
-            return True
-
-        max_count = sum(1 for length in path_lengths if length >= self.number)
-        if self.min_fraction is not None and max_count / total_cells < self.min_fraction:
-            return False
-
-        return True
-
 
 class UsesRule(Constraint):
     def __init__(self, rule_name: str, min_count: Optional[int] = None, min_fraction: Optional[float] = None):
@@ -173,9 +127,7 @@ class FollowingArrowsFraction(Constraint):
         return count
 
     def check(self, trace: SolverResult) -> bool:
-        return self.pre_check(trace.puzzle)
-
-    def pre_check(self, puzzle: Puzzle) -> bool:
+        puzzle = trace.puzzle
         total_cells = puzzle.rows * puzzle.cols
         if total_cells == 0:
             return True

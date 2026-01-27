@@ -46,7 +46,7 @@ def write_puzzle_analysis(f: TextIO, i: int, puzzle: Puzzle, solution: Puzzle, r
 def solve_puzzle_worker(args: tuple[Puzzle, int]) -> tuple[Puzzle, SolverResult]:
     puzzle, max_complexity = args
     solver = create_solver(max_complexity=max_complexity)
-    res = solver.solve(puzzle, solve_with_min_complexity=True)
+    res = solver.solve(puzzle)
     return puzzle, res
 
 
