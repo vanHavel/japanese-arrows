@@ -3,6 +3,15 @@ from enum import Enum
 from typing import List, Optional, Set, Tuple
 
 
+class Type(Enum):
+    POSITION = "Position"
+    NUMBER = "Number"
+    DIRECTION = "Direction"
+
+    # Special types
+    UNKNOWN = "Unknown"
+
+
 class Direction(str, Enum):
     NORTH = "↑"
     NORTH_EAST = "↗"

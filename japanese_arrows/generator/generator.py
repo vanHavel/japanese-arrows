@@ -1,4 +1,5 @@
 import copy
+import math
 import multiprocessing
 import random
 import time
@@ -94,8 +95,6 @@ class Generator:
                         break
 
                 elif trace.status == SolverStatus.UNDERCONSTRAINED:
-                    import math
-
                     limit = max(math.ceil(rows * cols * self.MAX_GUESSES_FRACTION), 3)
                     if extra_fills >= limit:
                         stats.puzzles_rejected_excessive_guessing += 1
@@ -132,8 +131,6 @@ class Generator:
                     # Continue inner loop
 
                 else:
-                    import math
-
                     max_modifications = max(math.ceil(rows * cols * self.MAX_MODIFICATIONS_FRACTION), 3)
                     if modifications < max_modifications and trace.contradiction_location is not None:
                         # Contradiction found, try to rotate the arrow at the contradiction

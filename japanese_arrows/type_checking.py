@@ -1,5 +1,4 @@
-from enum import Enum
-
+from japanese_arrows.models import Type
 from japanese_arrows.rules import (
     And,
     Conclusion,
@@ -22,16 +21,6 @@ from japanese_arrows.rules import (
     Term,
     Variable,
 )
-
-
-class Type(Enum):
-    POSITION = "Position"
-    NUMBER = "Number"
-    DIRECTION = "Direction"
-
-    # Special types
-    UNKNOWN = "Unknown"
-
 
 # Function Signature: ([ArgType, ...], ReturnType)
 FunctionSignature = tuple[list[Type], Type]

@@ -1,13 +1,15 @@
 from typing import Any, Callable
 
+from japanese_arrows.models import Type
 from japanese_arrows.rules import (
     Constant,
     Equality,
+    ExistsNumber,
     ExistsPosition,
+    FunctionCall,
     Relation,
     Variable,
 )
-from japanese_arrows.type_checking import Type
 from japanese_arrows.universe import Universe
 
 
@@ -63,8 +65,6 @@ def test_universe_check_simple() -> None:
 
     u = Universe(domain, constants, relations, functions)
 
-    from japanese_arrows.rules import FunctionCall
-
     v_p = Variable("p")
     t_val_p = FunctionCall("val", [v_p])
     t_1 = Constant(1)
@@ -90,7 +90,6 @@ def test_universe_check_relation() -> None:
     u = Universe(domain, {}, {"<": is_less}, {})
 
     # exists x, y (x < y)
-    from japanese_arrows.rules import ExistsNumber
 
     v_x = Variable("x")
     v_y = Variable("y")

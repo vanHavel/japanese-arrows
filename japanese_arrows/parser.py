@@ -386,8 +386,6 @@ def parse_rule(rule_dict: dict[str, object]) -> Rule:
             condition_parser = RuleParser(condition_str)
             condition = condition_parser.parse_formula()
         else:
-            from japanese_arrows.rules import Constant, Equality
-
             condition = Equality(Constant(0), Constant(0))
 
         conclusions: list[Conclusion] = []

@@ -1,5 +1,6 @@
 import pytest
 
+from japanese_arrows.models import Type
 from japanese_arrows.rules import (
     Constant,
     Equality,
@@ -13,7 +14,7 @@ from japanese_arrows.rules import (
     SetVal,
     Variable,
 )
-from japanese_arrows.type_checking import FunctionSignature, RelationSignature, Type, check_condition, check_rule
+from japanese_arrows.type_checking import FunctionSignature, RelationSignature, check_condition, check_rule
 
 
 @pytest.fixture

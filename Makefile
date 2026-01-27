@@ -15,8 +15,7 @@ test-unit:
 test-integration:
 	uv run --group dev pytest -n 7 -m "integration" tests/integration
 
-test-all:
-	uv run --group dev pytest -n 7 -m "integration"
+test-all: test-unit test-integration
 
 serve:
 	uv run python -m http.server --directory web 8000

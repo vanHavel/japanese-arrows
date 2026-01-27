@@ -1,8 +1,7 @@
 from enum import Enum
 from typing import Any, Callable, Set, Tuple
 
-from japanese_arrows.models import Direction, Puzzle
-from japanese_arrows.type_checking import Type
+from japanese_arrows.models import Direction, Puzzle, Type
 from japanese_arrows.universe import Universe
 
 

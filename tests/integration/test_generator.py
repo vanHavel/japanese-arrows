@@ -1,6 +1,6 @@
 import pytest
 
-from japanese_arrows.generator.constraints import Constraint, RuleComplexityFraction
+from japanese_arrows.generator.constraints import Constraint, NumberFraction, RuleComplexityFraction
 from japanese_arrows.generator.generator import Generator
 from japanese_arrows.models import Puzzle
 from japanese_arrows.solver import SolverStatus, create_solver
@@ -69,7 +69,6 @@ def test_generate_many() -> None:
 def test_generator_max_attempts() -> None:
     gen = Generator()
     # Use a constraint that is impossible to meet
-    from japanese_arrows.generator.constraints import NumberFraction
 
     constraints: list[Constraint] = [NumberFraction(number=99, min_fraction=0.1)]
 

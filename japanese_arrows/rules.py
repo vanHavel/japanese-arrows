@@ -3,6 +3,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Iterator
 
+from japanese_arrows.models import Type
+
 if TYPE_CHECKING:
     from japanese_arrows.universe import Universe
 
@@ -179,8 +181,6 @@ class ExistsPosition(Quantifier):
         return f"exists_pos {vars_str} ({self.formula})"
 
     def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
-        from japanese_arrows.type_checking import Type
-
         domain_type = Type.POSITION
         elements = universe.domain.get(domain_type, set())
         if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
@@ -212,8 +212,6 @@ class ExistsNumber(Quantifier):
         return f"exists_num {vars_str} ({self.formula})"
 
     def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
-        from japanese_arrows.type_checking import Type
-
         domain_type = Type.NUMBER
         elements = universe.domain.get(domain_type, set())
         if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
@@ -245,8 +243,6 @@ class ForAllPosition(Quantifier):
         return f"forall_pos {vars_str} ({self.formula})"
 
     def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
-        from japanese_arrows.type_checking import Type
-
         domain_type = Type.POSITION
         elements = universe.domain.get(domain_type, set())
         if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:
@@ -279,8 +275,6 @@ class ForAllNumber(Quantifier):
         return f"forall_num {vars_str} ({self.formula})"
 
     def check(self, universe: "Universe", assignment: dict[str, Any]) -> Iterator[dict[str, Any]]:
-        from japanese_arrows.type_checking import Type
-
         domain_type = Type.NUMBER
         elements = universe.domain.get(domain_type, set())
         if universe.quantifier_exclusions and domain_type in universe.quantifier_exclusions:

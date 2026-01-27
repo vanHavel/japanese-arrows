@@ -7,6 +7,7 @@ from japanese_arrows.generator.constraints import (
     RuleComplexityFraction,
     UsesRule,
 )
+from japanese_arrows.models import Cell, Direction, Puzzle
 
 
 def test_rule_complexity_fraction_min() -> None:
@@ -125,7 +126,6 @@ def test_rule_complexity_fraction_counts() -> None:
 
 def test_number_fraction() -> None:
     # 5x5 grid = 25 cells
-    from japanese_arrows.models import Cell, Direction, Puzzle
 
     grid = [[Cell(Direction.NORTH, number=1) for _ in range(5)] for _ in range(5)]
     puzzle = Puzzle(5, 5, grid)
@@ -157,8 +157,6 @@ def test_number_fraction() -> None:
 
 
 def test_following_arrows_fraction() -> None:
-    from japanese_arrows.models import Cell, Direction, Puzzle
-
     # 2x2 grid, (0,0) and (0,1) point EAST, (1,0) and (1,1) point WEST
     # (0,0) points at (0,1), both EAST -> count 1
     # (1,1) points at (1,0), both WEST -> count 1
@@ -243,8 +241,6 @@ def test_uses_rule() -> None:
 
 
 def test_prefilled_cells_fraction() -> None:
-    from japanese_arrows.models import Cell, Direction, Puzzle
-
     # 2x2 grid
     # (0,0) has a number, others don't -> 1/4 = 0.25
     grid = [[Cell(Direction.NORTH) for _ in range(2)] for _ in range(2)]
