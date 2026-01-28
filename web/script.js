@@ -29,9 +29,12 @@ document.addEventListener('DOMContentLoaded', () => {
         isCtrlPressed: false,
     };
 
+    // Numpad Undo Stack (for pencil mode)
+    let numpadUndoStack = []; // Stores Set() copies
+
     // DOM Elements
     const puzzleGrid = document.getElementById('puzzle-grid');
-    const numParams = document.querySelectorAll('.num-btn');
+    const numParams = document.querySelectorAll('.num-btn:not(.mobile-num-btn)');
     const deleteBtn = document.getElementById('numpad-delete');
     const modePenBtn = document.getElementById('mode-pen');
     const modePencilBtn = document.getElementById('mode-pencil');
@@ -108,14 +111,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     mobileNumBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            // For delete button which doesn't have .num-btn class
             const val = btn.getAttribute('data-value');
-            if (val === 'delete') {
-                inputNumber(null);
+
+            // Special handling for undo
+            if (val === 'undo') {
+                handleNumpadUndo();
+                return;
             }
-            // For numbers, the generic .num-btn listener handles input
-            // We just need to close the modal
-            closeNumpadModal();
+
+            if (val === 'delete') {
+                handleNumpadDelete();
+            } else {
+                // Number input
+                handleNumpadInput(val);
+            }
         });
     });
 
@@ -580,6 +589,29 @@ document.addEventListener('DOMContentLoaded', () => {
             numpadModal.style.pointerEvents = 'auto';
         }, 300);
 
+        // Reset undo stack
+        numpadUndoStack = [];
+
+        const isPencil = (userState.mode === 'pencil') || (userState.isCtrlPressed && userState.mode === 'pen');
+        const numpadDiv = numpadModal.querySelector('.numpad');
+
+        // Update UI for mode
+        if (isPencil) {
+            numpadDiv.classList.add('pencil-mode');
+            numpadModal.querySelector('.undo-btn').classList.remove('hidden');
+            btnCloseNumpad.textContent = 'Done'; // Changed from Cancel to Done/Confirm
+            // Hide 0 button in pencil mode
+            const btnZero = numpadModal.querySelector('.mobile-num-btn[data-value="0"]');
+            if (btnZero) btnZero.classList.add('hidden');
+        } else {
+            numpadDiv.classList.remove('pencil-mode');
+            numpadModal.querySelector('.undo-btn').classList.add('hidden');
+            btnCloseNumpad.textContent = 'Cancel';
+            // Show 0 button in pen mode
+            const btnZero = numpadModal.querySelector('.mobile-num-btn[data-value="0"]');
+            if (btnZero) btnZero.classList.remove('hidden');
+        }
+
         const modalContent = numpadModal.querySelector('.modal-content');
         numpadModal.classList.remove('hidden');
 
@@ -601,10 +633,104 @@ document.addEventListener('DOMContentLoaded', () => {
             modalContent.style.left = `${left}px`;
             modalContent.style.margin = '0';
         }
+
+        // Initial visual update
+        updateNumpadVisuals();
+    }
+
+    function handleNumpadInput(val) {
+        const target = userState.selected;
+        if (!target) return;
+        const { r, c } = target;
+
+        const isPencil = numpadModal.querySelector('.numpad').classList.contains('pencil-mode');
+
+        if (isPencil) {
+            // Save state *before* modification
+            const currentMarks = new Set(userState.grid[r][c].marks);
+            numpadUndoStack.push(currentMarks);
+
+            inputNumber(val); // Logic handles toggling
+            // Do NOT close modal
+            updateNumpadVisuals();
+        } else {
+            inputNumber(val);
+            closeNumpadModal();
+        }
+    }
+
+    function handleNumpadDelete() {
+        const target = userState.selected;
+        if (!target) return;
+        const { r, c } = target;
+
+        const isPencil = numpadModal.querySelector('.numpad').classList.contains('pencil-mode');
+
+        if (isPencil) {
+            // Save state *before* clearing
+            const currentMarks = new Set(userState.grid[r][c].marks);
+            numpadUndoStack.push(currentMarks);
+
+            userState.grid[r][c].marks.clear();
+            userState.grid[r][c].val = null;
+            userState.grid[r][c].isError = false;
+            userState.grid[r][c].val = null;
+            userState.grid[r][c].isError = false;
+            renderGrid();
+            updateNumpadVisuals();
+        } else {
+            inputNumber(null);
+            closeNumpadModal();
+        }
+    }
+
+    function handleNumpadUndo() {
+        if (numpadUndoStack.length === 0) return;
+
+        const target = userState.selected;
+        if (!target) return;
+        const { r, c } = target;
+
+        const prevMarks = numpadUndoStack.pop();
+        userState.grid[r][c].marks = new Set(prevMarks);
+        // Ensure no value overrides marks
+        if (userState.grid[r][c].marks.size > 0) {
+            userState.grid[r][c].val = null;
+        }
+        renderGrid();
+        updateNumpadVisuals();
+    }
+
+    function updateNumpadVisuals() {
+        // Clear all active states first
+        const numBtns = numpadModal.querySelectorAll('.mobile-num-btn.num-btn');
+        numBtns.forEach(btn => btn.classList.remove('active'));
+
+        const target = userState.selected;
+        if (!target) return;
+        const { r, c } = target;
+
+        // Check if pencil mode
+        const isPencil = numpadModal.querySelector('.numpad').classList.contains('pencil-mode');
+        if (!isPencil) return;
+
+        // Highlight marks
+        const marks = userState.grid[r][c].marks;
+        numBtns.forEach(btn => {
+            const val = btn.getAttribute('data-value');
+            if (marks.has(val) || marks.has(Number(val))) {
+                btn.classList.add('active');
+            }
+        });
     }
 
     function closeNumpadModal() {
         numpadModal.classList.add('hidden');
+
+        // Clear active highlights immediately
+        const numBtns = numpadModal.querySelectorAll('.mobile-num-btn.num-btn');
+        numBtns.forEach(btn => btn.classList.remove('active'));
+
         // Deselect cell when closing modal (for better mobile UX)
         if (userState.selected) {
             userState.selected = null;

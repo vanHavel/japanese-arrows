@@ -86,6 +86,13 @@
     transform: translateY(1px);
 }
 
+.num-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    font-weight: 600;
+}
+
 .action-btn {
     grid-column: span 2;
 }
@@ -105,6 +112,41 @@
 
 .delete-btn:hover {
     background-color: #fff5f5;
+}
+
+.undo-btn {
+    border: 1px solid var(--secondary-color);
+    color: var(--secondary-color);
+    background: #fff;
+    border-radius: 8px;
+    font-size: 1.25rem;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    aspect-ratio: 1;
+}
+
+.undo-btn:hover {
+    background-color: var(--btn-hover);
+}
+
+/* Numpad Layout Logic */
+.numpad .undo-btn.hidden {
+    display: none;
+}
+
+/* Default (Pen Mode): Delete spans 2 cols */
+/* Default (Pen Mode): Delete spans 2 cols */
+.numpad .delete-btn {
+    grid-column: 2 / 4;
+}
+
+/* Pencil Mode: Undo and Delete share the row */
+.numpad.pencil-mode .undo-btn {
+    display: flex;
+    /* Override hidden */
+    grid-column: 1;
 }
 
 /* Mode Controls */
