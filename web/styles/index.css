@@ -313,8 +313,7 @@
     align-items: center;
 }
 
-@media (max-width: 1024px),
-(pointer: coarse) {
+@media (max-width: 1023px) {
     .game-container {
         flex-direction: column;
         align-items: center;
@@ -335,12 +334,20 @@
     }
 }
 
-/* Only hide side numpad on touch devices which use the popup modal */
-@media (pointer: coarse) {
+/* Only hide side numpad on small touch devices which use the popup modal */
+@media (pointer: coarse) and (max-width: 1023px) {
     .left-controls .numpad {
         display: none;
     }
 
+    /* Disable cell selection highlight as it shines through the modal */
+    .cell.selected {
+        background-color: var(--grid-bg);
+    }
+}
+
+/* Hide keyboard hints on all touch devices */
+@media (pointer: coarse) {
     .kbd-hint {
         display: none;
     }
