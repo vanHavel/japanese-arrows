@@ -212,3 +212,7 @@ scripts/output/
 web/puzzles/
 puzzles/
 tests/integration/test_puzzles.py
+
+# OS generated files
+.DS_Store
+**/.DS_Store
