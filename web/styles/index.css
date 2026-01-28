@@ -81,7 +81,8 @@
     border-color: var(--text-color);
 }
 
-.num-btn:active {
+.num-btn:active,
+.num-btn.pressed {
     background-color: var(--border-color);
     transform: translateY(1px);
 }
@@ -112,6 +113,12 @@
 
 .delete-btn:hover {
     background-color: #fff5f5;
+}
+
+.delete-btn:active,
+.delete-btn.pressed {
+    background-color: #ffe6e6;
+    transform: translateY(1px);
 }
 
 .undo-btn {

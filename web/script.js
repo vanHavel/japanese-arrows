@@ -448,12 +448,14 @@ document.addEventListener('DOMContentLoaded', () => {
         // Numbers
         if (e.key >= '0' && e.key <= '9') {
             inputNumber(e.key);
+            highlightNumpadKey(e.key);
             return;
         }
 
         // Delete
         if (e.key === 'Backspace' || e.key === 'Delete') {
             inputNumber(null);
+            highlightNumpadKey('delete');
             return;
         }
     }
@@ -462,6 +464,30 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.key === 'Control') {
             userState.isCtrlPressed = false;
             updateModeVisuals();
+        }
+    }
+
+    function highlightNumpadKey(val) {
+        // Desktop numpad only (numParams selects desktop buttons)
+        let btn = null;
+        if (val === 'delete') {
+            btn = document.getElementById('numpad-delete');
+        } else {
+            // Find by data-value
+            // numParams is a NodeList of desktop num buttons
+            for (const b of numParams) {
+                if (b.getAttribute('data-value') === val) {
+                    btn = b;
+                    break;
+                }
+            }
+        }
+
+        if (btn) {
+            btn.classList.add('pressed');
+            setTimeout(() => {
+                btn.classList.remove('pressed');
+            }, 150);
         }
     }
 
