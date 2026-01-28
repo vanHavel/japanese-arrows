@@ -31,25 +31,33 @@
 }
 
 @font-face {
-    font-family: 'Noto Serif JP';
+    font-family: 'Noto Serif';
     font-style: normal;
     font-weight: 400;
     font-display: swap;
-    src: url('../assets/fonts/NotoSerifJP-Regular.ttf') format('truetype');
+    src: url('../assets/fonts/NotoSerif-Regular.ttf') format('truetype');
 }
 
 @font-face {
-    font-family: 'Noto Serif JP';
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url('../assets/fonts/NotoSerifJP-Medium.ttf') format('truetype');
-}
-
-@font-face {
-    font-family: 'Noto Serif JP';
+    font-family: 'Noto Serif';
     font-style: normal;
     font-weight: 600;
     font-display: swap;
-    src: url('../assets/fonts/NotoSerifJP-SemiBold.ttf') format('truetype');
+    src: url('../assets/fonts/NotoSerif-SemiBold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Noto Serif';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../assets/fonts/NotoSerif-Bold.ttf') format('truetype');
+}
+
+@font-face {
+    font-family: 'Caveat';
+    font-style: normal;
+    font-weight: 400 700;
+    font-display: swap;
+    src: url('../assets/fonts/Caveat-Variable.ttf') format('truetype');
 }

@@ -382,6 +382,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function selectCell(r, c) {
+        if (userState.selected && userState.selected.r === r && userState.selected.c === c) {
+            userState.selected = null;
+            renderGrid();
+            if (window.matchMedia("(pointer: coarse)").matches) {
+                closeNumpadModal();
+            }
+            return;
+        }
+
         userState.selected = { r, c };
         renderGrid();
 
@@ -457,8 +466,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function inputNumber(val) {
-        // Prioritize hovered cell, then selected cell
-        const target = userState.hovered || userState.selected;
+        // Prioritize selected cell, then hovered cell
+        const target = userState.selected || userState.hovered;
         if (!target) return;
 
         const { r, c } = target;

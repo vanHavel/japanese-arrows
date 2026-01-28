@@ -70,7 +70,7 @@
     border-radius: 4px;
     font-size: 1.1rem;
     font-weight: 400;
-    font-family: 'Noto Serif JP', serif;
+    font-family: 'Noto Serif', serif;
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s;
@@ -222,7 +222,7 @@
     z-index: 10;
     color: var(--primary-color);
     pointer-events: none;
-    font-family: 'Noto Serif JP', serif;
+    font-family: 'Noto Serif', serif;
 }
 
 .cell-value.initial {
@@ -248,14 +248,14 @@
 }
 
 .pencil-mark {
-    font-size: 1.25rem;
+    font-size: 1.4rem;
     font-weight: 600;
     color: var(--pencil-color);
     display: flex;
     justify-content: center;
     align-items: center;
     line-height: 1;
-    font-family: 'Noto Serif JP', serif;
+    font-family: 'Caveat', cursive;
 }
 
 /* Control Buttons */
