@@ -394,8 +394,8 @@ document.addEventListener('DOMContentLoaded', () => {
         userState.selected = { r, c };
         renderGrid();
 
-        // Only open numpad modal on small touch devices
-        if (window.matchMedia("(pointer: coarse) and (max-width: 1023px)").matches) {
+        // Only open numpad modal on touch devices
+        if (window.matchMedia("(pointer: coarse)").matches) {
             // Only if editable
             if (!puzzle.grid[r][c].initial) {
                 // Find the cell element to position the modal
