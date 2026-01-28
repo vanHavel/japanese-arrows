@@ -1,2 +1,2 @@
 User-agent: *
-Disallow: /imprint.html
+Disallow: /impressum.html

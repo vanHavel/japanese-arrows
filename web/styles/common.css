@@ -193,8 +193,8 @@ body {
     color: var(--primary-color);
 }
 
-/* Imprint */
-.imprint-content {
+/* Impressum */
+.impressum-content {
     max-width: 800px;
     width: 100%;
     margin: 0 auto;
@@ -205,19 +205,19 @@ body {
     border: 1px solid var(--border-color);
 }
 
-.imprint-content h1 {
+.impressum-content h1 {
     margin-bottom: 2rem;
     text-align: center;
     font-family: 'Noto Serif', serif;
 }
 
-.imprint-content h2 {
+.impressum-content h2 {
     margin: 1.5rem 0 0.5rem 0;
     font-size: 1.1rem;
     color: var(--text-color);
 }
 
-.imprint-content p {
+.impressum-content p {
     margin-bottom: 1rem;
     color: var(--secondary-color);
 }
