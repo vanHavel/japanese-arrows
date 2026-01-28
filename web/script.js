@@ -574,6 +574,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function openNumpadModal(anchorElement) {
+        // Prevent immediate input registration (ghost clicks)
+        numpadModal.style.pointerEvents = 'none';
+        setTimeout(() => {
+            numpadModal.style.pointerEvents = 'auto';
+        }, 300);
+
         const modalContent = numpadModal.querySelector('.modal-content');
         numpadModal.classList.remove('hidden');
 
@@ -599,6 +605,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function closeNumpadModal() {
         numpadModal.classList.add('hidden');
+        // Deselect cell when closing modal (for better mobile UX)
+        if (userState.selected) {
+            userState.selected = null;
+            renderGrid();
+        }
     }
 
 });
