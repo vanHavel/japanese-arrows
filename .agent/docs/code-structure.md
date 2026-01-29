@@ -1,10 +1,14 @@
 japanese_arrows:
 - models.py: defines puzzle, cell, arrow, direction, etc.
 - rules.py: defines rules class using typed first order logic
-- solver.py: solves the puzzle using rules
+- solver:
+  - solver.py: solves the puzzle using rules
+  - definitions.py: creates universe for rule evaluation
+  - utils.py: utility functions for solver
 - universe.py: defines universe in which formulas are evaluated
 - parser.py: parses rules from yaml file
 - type_checking.py: type checking for rules
+- optimizer.py: optimizes the FO rules using minscoping
 - io.py: puzzle io
 - generator:
   - generator.py: logic for creating new puzzles

@@ -27,11 +27,14 @@
     - exclude(p, < sees_distinct(p))
 - name: SEEN_AND_FREE
   condition: |
-    exists p (val(p) = nil)
+    exists p,i (
+      val(p) = nil ^
+      i = sees_distinct(p) + ahead_free(p)
+    )
   kind: FO
   complexity: 2
   conclusions:
-    - exclude(p, > sees_distinct(p) + ahead_free(p))
+    - exclude(p, >i)
 - name: NEXT_ARROW_SAME_DIRECTION
   condition: |
     exists q,p (
@@ -279,8 +282,9 @@
     - exclude(p, <i)
 - name: FREE_AHEAD_DISTINCT
   condition: |
-    exists p (
+    exists p,i (
       val(p) = nil ^
+      i = ahead_free(p) + sees_distinct(p) ^
       forall s,k (
         (points_at(p, s) ^ val(s) = nil ^ candidate(s, k)) -> !sees_value(p, k)
       ) ^
@@ -295,7 +299,7 @@
   kind: FO
   complexity: 4
   conclusions:
-    - set(p, sees_distinct(p) + ahead_free(p))
+    - set(p, i)
 - name: OPPOSITES_LOWER_BOUND_CANDIDATES
   condition: |
     exists p,q,i (

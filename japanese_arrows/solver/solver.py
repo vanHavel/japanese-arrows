@@ -9,7 +9,7 @@ from typing import Any, Callable, List
 import yaml
 
 from japanese_arrows.models import Puzzle
-from japanese_arrows.optimizer import optimize
+from japanese_arrows.optimizer import optimize_rule
 from japanese_arrows.parser import parse_rule
 from japanese_arrows.rules import (
     BacktrackRule,
@@ -492,8 +492,7 @@ def create_solver(max_complexity: int | None = None, rules_file: str | Path | No
                 # Type check before optimization
                 check_rule(rule, TYPE_CONSTANTS, TYPE_FUNCTIONS, TYPE_RELATIONS)
 
-                # Optimize the rule condition (miniscoping quantifiers)
-                rule.condition = optimize(rule.condition)
+                rule = optimize_rule(rule)
 
                 # Type check after optimization
                 check_rule(rule, TYPE_CONSTANTS, TYPE_FUNCTIONS, TYPE_RELATIONS)

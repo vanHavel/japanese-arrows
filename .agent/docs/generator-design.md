@@ -33,7 +33,7 @@ The generator tracks detailed statistics to help tune constraints and understand
 
 Current feasible generation limits:
 - max complexity: 6 - 6x6
-- max_complexity: 5 - 8x8
-- max_complexity: 4 - unsuccesful
+- max_complexity: 5 - 9x9
+- max_complexity: 4 - unsuccessful
 - max_complexity: 3 - 9x9
   
