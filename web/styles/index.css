@@ -74,6 +74,7 @@
     color: var(--text-color);
     cursor: pointer;
     transition: all 0.2s;
+    touch-action: manipulation;
 }
 
 .num-btn:hover {
@@ -182,6 +183,7 @@
     font-weight: 500;
     color: var(--secondary-color);
     transition: all 0.2s;
+    touch-action: manipulation;
 }
 
 .mode-btn.active {
@@ -232,6 +234,7 @@
     height: 80px;
     border: 1px solid rgba(0, 0, 0, 0.05);
     transition: background-color 0.3s ease;
+    touch-action: manipulation;
 }
 
 .puzzle-grid.show-grid .cell {
@@ -322,6 +325,7 @@
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     background: transparent;
     color: var(--text-color);
+    touch-action: manipulation;
 }
 
 .control-btn.primary {
@@ -437,9 +441,7 @@
 
 #numpad-modal .modal-content {
     border: 1px solid var(--border-color);
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
+    background: rgba(255, 255, 255, 0.95);
 }
 
 .mobile-num-btn {
