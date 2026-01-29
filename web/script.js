@@ -664,14 +664,43 @@ document.addEventListener('DOMContentLoaded', () => {
         if (anchorElement) {
             const rect = anchorElement.getBoundingClientRect();
             const modalRect = modalContent.getBoundingClientRect();
-
-            // Calculate position: try to center it near the cell
-            let top = rect.top + rect.height / 2 - modalRect.height / 2;
-            let left = rect.left + rect.width / 2 - modalRect.width / 2;
-
-            // Constrain to viewport
+            const gap = 10;
             const padding = 10;
-            top = Math.max(padding, Math.min(top, window.innerHeight - modalRect.height - padding));
+
+            let top, left;
+
+            // Try to position below the cell first
+            const topBelow = rect.bottom + gap;
+            const fitsBelow = topBelow + modalRect.height <= window.innerHeight - padding;
+
+            // Try to position above the cell if below doesn't fit
+            const topAbove = rect.top - gap - modalRect.height;
+            const fitsAbove = topAbove >= padding;
+
+            if (fitsBelow) {
+                // Position below
+                top = topBelow;
+            } else if (fitsAbove) {
+                // Position above
+                top = topAbove;
+            } else {
+                // If neither fits perfectly, prefer above for bottom cells, below for top cells
+                const cellVerticalCenter = rect.top + rect.height / 2;
+                const viewportCenter = window.innerHeight / 2;
+
+                if (cellVerticalCenter > viewportCenter) {
+                    // Cell is in bottom half - position above and allow it to go to edge
+                    top = Math.max(padding, topAbove);
+                } else {
+                    // Cell is in top half - position below
+                    top = Math.min(topBelow, window.innerHeight - modalRect.height - padding);
+                }
+            }
+
+            // Center horizontally relative to cell
+            left = rect.left + rect.width / 2 - modalRect.width / 2;
+
+            // Constrain horizontal position
             left = Math.max(padding, Math.min(left, window.innerWidth - modalRect.width - padding));
 
             modalContent.style.position = 'fixed';
