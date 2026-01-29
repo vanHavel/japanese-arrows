@@ -36,13 +36,20 @@ document.addEventListener('DOMContentLoaded', () => {
     const puzzleGrid = document.getElementById('puzzle-grid');
     const numParams = document.querySelectorAll('.num-btn:not(.mobile-num-btn)');
     const deleteBtn = document.getElementById('numpad-delete');
+
     const modePenBtn = document.getElementById('mode-pen');
     const modePencilBtn = document.getElementById('mode-pencil');
+    const modePenBtnDesktop = document.getElementById('mode-pen-desktop');
+    const modePencilBtnDesktop = document.getElementById('mode-pencil-desktop');
+
     const resetBtn = document.getElementById('btn-reset');
     const shareBtn = document.getElementById('btn-share');
     const fillSolutionBtn = document.getElementById('btn-fill-solution');
     const checkBtn = document.getElementById('btn-check');
+
     const toggleGridBtn = document.getElementById('toggle-grid');
+    const toggleGridBtnDesktop = document.getElementById('toggle-grid-desktop');
+
     const toast = document.getElementById('toast');
 
     // Navigation Elements
@@ -67,10 +74,19 @@ document.addEventListener('DOMContentLoaded', () => {
     // Event Listeners
     modePenBtn.addEventListener('click', () => setMode('pen'));
     modePencilBtn.addEventListener('click', () => setMode('pencil'));
+    modePenBtnDesktop.addEventListener('click', () => setMode('pen'));
+    modePencilBtnDesktop.addEventListener('click', () => setMode('pencil'));
 
     toggleGridBtn.addEventListener('click', () => {
         puzzleGrid.classList.toggle('show-grid');
         toggleGridBtn.classList.toggle('active');
+        toggleGridBtnDesktop.classList.toggle('active');
+    });
+
+    toggleGridBtnDesktop.addEventListener('click', () => {
+        puzzleGrid.classList.toggle('show-grid');
+        toggleGridBtn.classList.toggle('active');
+        toggleGridBtnDesktop.classList.toggle('active');
     });
 
     document.addEventListener('keydown', handleKeyDown);
@@ -425,10 +441,14 @@ document.addEventListener('DOMContentLoaded', () => {
             // Temporary pencil mode
             modePenBtn.classList.remove('active');
             modePencilBtn.classList.add('active');
+            modePenBtnDesktop.classList.remove('active');
+            modePencilBtnDesktop.classList.add('active');
         } else {
             // Normal state
             modePenBtn.classList.toggle('active', userState.mode === 'pen');
             modePencilBtn.classList.toggle('active', userState.mode === 'pencil');
+            modePenBtnDesktop.classList.toggle('active', userState.mode === 'pen');
+            modePencilBtnDesktop.classList.toggle('active', userState.mode === 'pencil');
         }
     }
 
@@ -751,6 +771,15 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeNumpadModal() {
+        // Prevent ghost clicks on underlying buttons
+        const rightControls = document.querySelector('.right-controls');
+        if (rightControls) {
+            rightControls.style.pointerEvents = 'none';
+            setTimeout(() => {
+                rightControls.style.pointerEvents = 'auto';
+            }, 300);
+        }
+
         numpadModal.classList.add('hidden');
 
         // Clear active highlights immediately
