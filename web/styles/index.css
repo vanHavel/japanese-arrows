@@ -145,7 +145,6 @@
 }
 
 /* Default (Pen Mode): Delete spans 2 cols */
-/* Default (Pen Mode): Delete spans 2 cols */
 .numpad .delete-btn {
     grid-column: 2 / 4;
 }

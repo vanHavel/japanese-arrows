@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Optional, Set, Tuple
 
 
 class Type(Enum):
@@ -23,7 +22,7 @@ class Direction(str, Enum):
     NORTH_WEST = "↖"
 
     @property
-    def delta(self) -> Tuple[int, int]:
+    def delta(self) -> tuple[int, int]:
         mapping = {
             Direction.NORTH: (-1, 0),
             Direction.NORTH_EAST: (-1, 1),
@@ -40,8 +39,8 @@ class Direction(str, Enum):
 @dataclass
 class Cell:
     direction: Direction
-    number: Optional[int] = None
-    candidates: Optional[Set[int]] = None
+    number: int | None = None
+    candidates: set[int] | None = None
 
     def __str__(self) -> str:
         num_str = str(self.number) if self.number is not None else "."
@@ -61,7 +60,7 @@ class Cell:
 class Puzzle:
     rows: int
     cols: int
-    grid: List[List[Cell]]
+    grid: list[list[Cell]]
 
     def __post_init__(self) -> None:
         if len(self.grid) != self.rows:
