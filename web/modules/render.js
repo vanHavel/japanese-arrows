@@ -39,10 +39,12 @@ export function renderGrid() {
 
             cell.onmouseenter = () => {
                 userState.hovered = { r, c };
+                updateDesktopNumpadVisuals();
             };
             cell.onmouseleave = () => {
                 if (userState.hovered && userState.hovered.r === r && userState.hovered.c === c) {
                     userState.hovered = null;
+                    updateDesktopNumpadVisuals();
                 }
             };
 
@@ -91,6 +93,28 @@ export function updateNumpadVisuals() {
 
     const marks = userState.grid[r][c].marks;
     numBtns.forEach(btn => {
+        const val = btn.getAttribute('data-value');
+        if (marks.has(val) || marks.has(Number(val))) {
+            btn.classList.add('active');
+        }
+    });
+}
+
+export function updateDesktopNumpadVisuals() {
+    const desktopNumBtns = document.querySelectorAll('.numpad:not(.popup-numpad) .num-btn');
+    desktopNumBtns.forEach(btn => btn.classList.remove('active'));
+
+    const isPencilMode = userState.mode === 'pencil' || userState.isCtrlPressed;
+    if (!isPencilMode) return;
+
+    const target = userState.selected || userState.hovered;
+    if (!target) return;
+
+    const { r, c } = target;
+    if (!userState.grid[r] || !userState.grid[r][c]) return;
+
+    const marks = userState.grid[r][c].marks;
+    desktopNumBtns.forEach(btn => {
         const val = btn.getAttribute('data-value');
         if (marks.has(val) || marks.has(Number(val))) {
             btn.classList.add('active');

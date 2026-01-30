@@ -1,5 +1,5 @@
 import { puzzle, userState, numpadUndoStack } from './state.js';
-import { renderGrid, updateNumpadVisuals } from './render.js';
+import { renderGrid, updateNumpadVisuals, updateDesktopNumpadVisuals } from './render.js';
 import { openNumpadModal, closeNumpadModal } from './modals.js';
 
 const modePenBtn = document.getElementById('mode-pen');
@@ -10,6 +10,7 @@ const modePencilBtnDesktop = document.getElementById('mode-pencil-desktop');
 export function setMode(mode) {
     userState.mode = mode;
     updateModeVisuals();
+    updateDesktopNumpadVisuals();
 }
 
 export function updateModeVisuals() {
@@ -38,6 +39,7 @@ export function selectCell(r, c) {
 
     userState.selected = { r, c };
     renderGrid();
+    updateDesktopNumpadVisuals();
 
     if (window.matchMedia("(pointer: coarse)").matches) {
         if (!puzzle.grid[r][c].initial) {
@@ -80,6 +82,7 @@ export function inputNumber(val) {
         }
     }
     renderGrid();
+    updateDesktopNumpadVisuals();
 }
 
 export function moveSelection(key) {
@@ -117,6 +120,7 @@ export function handleKeyDown(e) {
     if (e.key === 'Control') {
         userState.isCtrlPressed = true;
         updateModeVisuals();
+        updateDesktopNumpadVisuals();
     }
 
     if (userState.selected && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
@@ -142,6 +146,7 @@ export function handleKeyUp(e) {
     if (e.key === 'Control') {
         userState.isCtrlPressed = false;
         updateModeVisuals();
+        updateDesktopNumpadVisuals();
     }
 }
 
