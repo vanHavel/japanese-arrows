@@ -166,7 +166,8 @@ export function resetPuzzle() {
 
 export function shareUrl() {
     const toast = document.getElementById('toast');
-    const url = window.location.href;
+    const baseUrl = `${window.location.origin}${window.location.pathname}`;
+    const url = `${baseUrl}?date=${currentDate}`;
     navigator.clipboard.writeText(url).then(() => {
         toast.classList.remove('hidden');
         setTimeout(() => {

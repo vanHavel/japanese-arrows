@@ -83,7 +83,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         const size = filterSize.value;
         const arrows = filterArrows.value;
 
+        // Get today's date at midnight for comparison
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
         filteredPuzzles = allPuzzles.filter(p => {
+            // Filter out future puzzles
+            const puzzleDate = new Date(p.date);
+            puzzleDate.setHours(0, 0, 0, 0);
+            if (puzzleDate > today) return false;
+
             if (diff && p.difficulty !== diff) return false;
             if (size && p.size !== size) return false;
             if (arrows && p.arrows !== arrows) return false;
