@@ -52,15 +52,15 @@ def solve_puzzle_worker(args: tuple[Puzzle, int]) -> tuple[Puzzle, SolverResult]
 
 def main() -> None:
     # --- Configuration ---
-    ROWS = 7
-    COLS = 7
+    ROWS = 6
+    COLS = 6
     ALLOW_DIAGONALS = False
-    MAX_COMPLEXITY = 6
+    MAX_COMPLEXITY = 7
     COUNT = 1
 
     CONSTRAINTS = [
         FollowingArrowsFraction(min_fraction=0.1),
-        RuleComplexityFraction(complexity=6, min_count=1),
+        RuleComplexityFraction(complexity=7, min_count=1),
         NumberFraction(number=1, max_fraction=0.4),
     ]
 

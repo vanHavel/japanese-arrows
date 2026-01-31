@@ -32,6 +32,7 @@ The generator tracks detailed statistics to help tune constraints and understand
 *   `rejections_per_constraint`: Breakdown of which constraints were most difficult to satisfy.
 
 Current feasible generation limits:
+- max_complexity: 7 - 5x5
 - max complexity: 6 - 6x6
 - max_complexity: 5 - 9x9
 - max_complexity: 4 - unsuccessful

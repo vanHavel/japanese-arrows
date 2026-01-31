@@ -323,3 +323,9 @@
   backtrack_depth: 1
   rule_depth: 2
   max_rule_complexity: 4
+- name: BACKTRACK_ULTRA
+  kind: Backtrack
+  complexity: 7
+  backtrack_depth: 1
+  rule_depth: 3
+  max_rule_complexity: 4
