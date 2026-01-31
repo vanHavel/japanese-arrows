@@ -1,5 +1,5 @@
-import { puzzle, solution, userState, constants, currentDate, setCurrentDate, initUserState } from './state.js';
-import { renderGrid } from './render.js';
+import { puzzle, solution, userState, constants, currentDate, setCurrentDate, initUserState, clearUndoStack } from './state.js';
+import { renderGrid, updateDesktopNumpadVisuals } from './render.js';
 import { loadPuzzleState, clearPuzzleState, markPuzzleSolved, savePuzzleState } from './storage.js';
 
 export function parsePuzzle(text) {
@@ -114,8 +114,10 @@ export async function loadPuzzle() {
         parseSolution(solutionText);
 
         initUserState();
+        clearUndoStack();
         restoreSavedState();
         renderGrid();
+        updateDesktopNumpadVisuals();
     } catch (err) {
         console.error('Failed to load puzzle', err);
 
@@ -181,7 +183,9 @@ export function fillSolution() {
             }
         }
     }
+    clearUndoStack();
     renderGrid();
+    updateDesktopNumpadVisuals();
     savePuzzleState(currentDate, userState.grid);
 }
 
@@ -189,7 +193,9 @@ export function resetPuzzle() {
     clearPuzzleState(currentDate);
     hideSolvedBadge();
     initUserState();
+    clearUndoStack();
     renderGrid();
+    updateDesktopNumpadVisuals();
 }
 
 function showSolvedBadge() {

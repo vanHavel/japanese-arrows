@@ -1,6 +1,6 @@
-import { puzzle, userState, numpadUndoStack, currentDate } from './state.js';
+import { puzzle, userState, undoStack, MAX_UNDO_SIZE, currentDate } from './state.js';
 import { renderGrid, updateNumpadVisuals, updateDesktopNumpadVisuals } from './render.js';
-import { openNumpadModal, closeNumpadModal } from './modals.js';
+import { openNumpadModal, closeNumpadModal, canModalUndo } from './modals.js';
 import { savePuzzleState } from './storage.js';
 import { clearSolvedState } from './puzzle.js';
 
@@ -60,6 +60,17 @@ export function inputNumber(val) {
     const { r, c } = target;
 
     if (puzzle.grid[r][c].initial) return;
+
+    const cell = userState.grid[r][c];
+    undoStack.push({
+        row: r,
+        col: c,
+        prevVal: cell.val,
+        prevMarks: new Set(cell.marks),
+    });
+    if (undoStack.length > MAX_UNDO_SIZE) {
+        undoStack.shift();
+    }
 
     const effectiveMode = (userState.isCtrlPressed && userState.mode === 'pen') ? 'pencil' : userState.mode;
 
@@ -127,6 +138,12 @@ export function handleKeyDown(e) {
         updateDesktopNumpadVisuals();
     }
 
+    if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        performUndo();
+        return;
+    }
+
     if (userState.selected && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key)) {
         e.preventDefault();
         moveSelection(e.key);
@@ -157,15 +174,11 @@ export function handleKeyUp(e) {
 export function handleNumpadInput(val) {
     const target = userState.selected;
     if (!target) return;
-    const { r, c } = target;
 
     const numpadModal = document.getElementById('numpad-modal');
     const isPencil = numpadModal.querySelector('.numpad').classList.contains('pencil-mode');
 
     if (isPencil) {
-        const currentMarks = new Set(userState.grid[r][c].marks);
-        numpadUndoStack.push(currentMarks);
-
         inputNumber(val);
         updateNumpadVisuals();
     } else {
@@ -177,40 +190,38 @@ export function handleNumpadInput(val) {
 export function handleNumpadDelete() {
     const target = userState.selected;
     if (!target) return;
-    const { r, c } = target;
 
     const numpadModal = document.getElementById('numpad-modal');
     const isPencil = numpadModal.querySelector('.numpad').classList.contains('pencil-mode');
 
     if (isPencil) {
-        const currentMarks = new Set(userState.grid[r][c].marks);
-        numpadUndoStack.push(currentMarks);
-
-        userState.grid[r][c].marks.clear();
-        userState.grid[r][c].val = null;
-        userState.grid[r][c].isError = false;
-        renderGrid();
+        inputNumber(null);
         updateNumpadVisuals();
-        savePuzzleState(currentDate, userState.grid);
     } else {
         inputNumber(null);
         closeNumpadModal();
     }
 }
 
-export function handleNumpadUndo() {
-    if (numpadUndoStack.length === 0) return;
+export function performUndo() {
+    if (undoStack.length === 0) return;
 
-    const target = userState.selected;
-    if (!target) return;
-    const { r, c } = target;
+    const action = undoStack.pop();
+    const { row, col, prevVal, prevMarks } = action;
 
-    const prevMarks = numpadUndoStack.pop();
-    userState.grid[r][c].marks = new Set(prevMarks);
-    if (userState.grid[r][c].marks.size > 0) {
-        userState.grid[r][c].val = null;
-    }
+    userState.grid[row][col].val = prevVal;
+    userState.grid[row][col].marks = new Set(prevMarks);
+    userState.grid[row][col].isError = false;
+
     renderGrid();
-    updateNumpadVisuals();
-    savePuzzleState(currentDate, userState.grid);
+    updateDesktopNumpadVisuals();
+    savePuzzleState(currentDate, userState.grid, false);
 }
+
+export function handleNumpadUndo() {
+    if (!canModalUndo()) return;
+
+    performUndo();
+    updateNumpadVisuals();
+}
+

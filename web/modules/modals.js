@@ -1,5 +1,11 @@
-import { puzzle, userState, numpadUndoStack } from './state.js';
+import { puzzle, userState, undoStack } from './state.js';
 import { renderGrid, updateNumpadVisuals } from './render.js';
+
+let modalUndoBaseIndex = 0;
+
+export function canModalUndo() {
+    return undoStack.length > modalUndoBaseIndex;
+}
 
 export function openNumpadModal(anchorElement) {
     const numpadModal = document.getElementById('numpad-modal');
@@ -10,7 +16,7 @@ export function openNumpadModal(anchorElement) {
         numpadModal.style.pointerEvents = 'auto';
     }, 300);
 
-    numpadUndoStack.length = 0;
+    modalUndoBaseIndex = undoStack.length;
 
     const isPencil = (userState.mode === 'pencil') || (userState.isCtrlPressed && userState.mode === 'pen');
     const numpadDiv = numpadModal.querySelector('.numpad');

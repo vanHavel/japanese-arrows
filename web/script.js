@@ -1,6 +1,6 @@
 import { loadPuzzle, checkPuzzle, fillSolution, resetPuzzle, shareUrl } from './modules/puzzle.js';
 import { initNavigation, navigateDay } from './modules/navigation.js';
-import { setMode, handleKeyDown, handleKeyUp, inputNumber, handleNumpadInput, handleNumpadDelete, handleNumpadUndo } from './modules/input.js';
+import { setMode, handleKeyDown, handleKeyUp, inputNumber, handleNumpadInput, handleNumpadDelete, handleNumpadUndo, performUndo } from './modules/input.js';
 import { closeNumpadModal, setupResetModal } from './modules/modals.js';
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -15,6 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const shareBtn = document.getElementById('btn-share');
     const fillSolutionBtn = document.getElementById('btn-fill-solution');
+    const undoBtn = document.getElementById('btn-undo');
     const checkBtn = document.getElementById('btn-check');
 
     const toggleGridBtn = document.getElementById('toggle-grid');
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     shareBtn.addEventListener('click', shareUrl);
     fillSolutionBtn.addEventListener('click', fillSolution);
+    undoBtn.addEventListener('click', performUndo);
     checkBtn.addEventListener('click', checkPuzzle);
 
     prevDayBtn.addEventListener('click', () => navigateDay(-1));

@@ -1,4 +1,4 @@
-import { puzzle, userState } from './state.js';
+import { puzzle, userState, undoStack } from './state.js';
 
 export function getArrowSvg(arrowChar) {
     const fileMap = {
@@ -103,6 +103,11 @@ export function updateNumpadVisuals() {
 export function updateDesktopNumpadVisuals() {
     const desktopNumBtns = document.querySelectorAll('.numpad:not(.popup-numpad) .num-btn');
     desktopNumBtns.forEach(btn => btn.classList.remove('active'));
+
+    const undoBtn = document.getElementById('btn-undo');
+    if (undoBtn) {
+        undoBtn.disabled = undoStack.length === 0;
+    }
 
     const isPencilMode = userState.mode === 'pencil' || userState.isCtrlPressed;
     if (!isPencilMode) return;

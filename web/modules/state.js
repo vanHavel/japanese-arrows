@@ -34,7 +34,12 @@ export function setCurrentDate(date) {
     currentDate = date;
 }
 
-export const numpadUndoStack = [];
+export const undoStack = [];
+export const MAX_UNDO_SIZE = 100;
+
+export function clearUndoStack() {
+    undoStack.length = 0;
+}
 
 export function initUserState() {
     userState.grid = [];
@@ -49,3 +54,4 @@ export function initUserState() {
         userState.grid.push(row);
     }
 }
+
