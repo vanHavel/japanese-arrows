@@ -1,3 +1,5 @@
+import { isPuzzleSolved } from '../modules/storage.js';
+
 document.addEventListener('DOMContentLoaded', async () => {
     const archiveList = document.getElementById('archive-list');
     const loadingMsg = document.getElementById('loading-msg');
@@ -126,7 +128,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         if (filteredPuzzles.length === 0) {
             const row = document.createElement('tr');
-            row.innerHTML = '<td colspan="4" style="text-align:center;">No puzzles found matching filters.</td>';
+            row.innerHTML = '<td colspan="5" style="text-align:center;">No puzzles found matching filters.</td>';
             archiveList.appendChild(row);
             return;
         }
@@ -161,11 +163,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 arrowDisplay = '<span title="Diagonal">→ ↗</span>';
             }
 
+            const isSolved = isPuzzleSolved(puzzle.date);
+            const solvedMark = isSolved ? '<span class="solved-check">✓</span>' : '';
+
             tr.innerHTML = `
                 <td>${dateStr}</td>
                 <td><span class="badge diff-${puzzle.difficulty.toLowerCase()}">${puzzle.difficulty}</span></td>
                 <td><span class="badge size">${puzzle.size}</span></td>
                 <td>${arrowDisplay}</td>
+                <td>${solvedMark}</td>
             `;
 
             // Click to navigate

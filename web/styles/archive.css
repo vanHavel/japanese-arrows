@@ -122,3 +122,9 @@
         display: none;
     }
 }
+
+.solved-check {
+    color: #28a745;
+    font-weight: bold;
+    font-size: 1.1rem;
+}

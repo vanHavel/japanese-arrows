@@ -21,6 +21,21 @@
     gap: 0.25rem;
 }
 
+.status-badges {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+.solved-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.5rem;
+    background-color: #d4edda;
+    color: #155724;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
 #current-date {
     font-size: 1.25rem;
     font-weight: 600;

@@ -1,6 +1,6 @@
 import { puzzle, solution, userState, constants, currentDate, setCurrentDate, initUserState } from './state.js';
 import { renderGrid } from './render.js';
-import { loadPuzzleState, clearPuzzleState } from './storage.js';
+import { loadPuzzleState, clearPuzzleState, markPuzzleSolved, savePuzzleState } from './storage.js';
 
 export function parsePuzzle(text) {
     const lines = text.trim().split('\n');
@@ -62,6 +62,9 @@ export function updateDifficultyDisplay(difficulty) {
 
 function restoreSavedState() {
     const saved = loadPuzzleState(currentDate);
+
+    hideSolvedBadge();
+
     if (!saved) return;
 
     for (let r = 0; r < puzzle.rows; r++) {
@@ -71,6 +74,10 @@ function restoreSavedState() {
                 userState.grid[r][c].marks = saved.grid[r][c].marks;
             }
         }
+    }
+
+    if (saved.solved) {
+        showSolvedBadge();
     }
 }
 
@@ -158,6 +165,8 @@ export function checkPuzzle() {
     } else if (!full) {
         alert('The puzzle is incomplete, but all filled numbers are correct so far!');
     } else {
+        savePuzzleState(currentDate, userState.grid, true);
+        showSolvedBadge();
         alert('Congratulations! Puzzle Solved!');
     }
 }
@@ -173,12 +182,28 @@ export function fillSolution() {
         }
     }
     renderGrid();
+    savePuzzleState(currentDate, userState.grid);
 }
 
 export function resetPuzzle() {
     clearPuzzleState(currentDate);
+    hideSolvedBadge();
     initUserState();
     renderGrid();
+}
+
+function showSolvedBadge() {
+    const badge = document.getElementById('solved-badge');
+    if (badge) badge.classList.remove('hidden');
+}
+
+function hideSolvedBadge() {
+    const badge = document.getElementById('solved-badge');
+    if (badge) badge.classList.add('hidden');
+}
+
+export function clearSolvedState() {
+    hideSolvedBadge();
 }
 
 export function shareUrl() {
