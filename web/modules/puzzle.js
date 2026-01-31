@@ -1,5 +1,6 @@
 import { puzzle, solution, userState, constants, currentDate, setCurrentDate, initUserState } from './state.js';
 import { renderGrid } from './render.js';
+import { loadPuzzleState, clearPuzzleState } from './storage.js';
 
 export function parsePuzzle(text) {
     const lines = text.trim().split('\n');
@@ -59,6 +60,20 @@ export function updateDifficultyDisplay(difficulty) {
     }
 }
 
+function restoreSavedState() {
+    const saved = loadPuzzleState(currentDate);
+    if (!saved) return;
+
+    for (let r = 0; r < puzzle.rows; r++) {
+        for (let c = 0; c < puzzle.cols; c++) {
+            if (!puzzle.grid[r][c].initial) {
+                userState.grid[r][c].val = saved.grid[r][c].val;
+                userState.grid[r][c].marks = saved.grid[r][c].marks;
+            }
+        }
+    }
+}
+
 export async function loadPuzzle() {
     const puzzleGrid = document.getElementById('puzzle-grid');
     document.body.style.cursor = 'wait';
@@ -92,6 +107,7 @@ export async function loadPuzzle() {
         parseSolution(solutionText);
 
         initUserState();
+        restoreSavedState();
         renderGrid();
     } catch (err) {
         console.error('Failed to load puzzle', err);
@@ -160,6 +176,7 @@ export function fillSolution() {
 }
 
 export function resetPuzzle() {
+    clearPuzzleState(currentDate);
     initUserState();
     renderGrid();
 }

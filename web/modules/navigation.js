@@ -1,5 +1,6 @@
-import { constants, currentDate, setCurrentDate } from './state.js';
+import { constants, currentDate, setCurrentDate, userState } from './state.js';
 import { loadPuzzle } from './puzzle.js';
+import { savePuzzleState } from './storage.js';
 
 export function updateDateDisplay() {
     const currentDateDisplay = document.getElementById('current-date');
@@ -16,6 +17,8 @@ export function updateNavigationButtons() {
 }
 
 export function navigateDay(delta) {
+    savePuzzleState(currentDate, userState.grid);
+
     const dateObj = new Date(currentDate);
     dateObj.setDate(dateObj.getDate() + delta);
 

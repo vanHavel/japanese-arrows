@@ -1,6 +1,7 @@
-import { puzzle, userState, numpadUndoStack } from './state.js';
+import { puzzle, userState, numpadUndoStack, currentDate } from './state.js';
 import { renderGrid, updateNumpadVisuals, updateDesktopNumpadVisuals } from './render.js';
 import { openNumpadModal, closeNumpadModal } from './modals.js';
+import { savePuzzleState } from './storage.js';
 
 const modePenBtn = document.getElementById('mode-pen');
 const modePencilBtn = document.getElementById('mode-pencil');
@@ -83,6 +84,7 @@ export function inputNumber(val) {
     }
     renderGrid();
     updateDesktopNumpadVisuals();
+    savePuzzleState(currentDate, userState.grid);
 }
 
 export function moveSelection(key) {
@@ -187,6 +189,7 @@ export function handleNumpadDelete() {
         userState.grid[r][c].isError = false;
         renderGrid();
         updateNumpadVisuals();
+        savePuzzleState(currentDate, userState.grid);
     } else {
         inputNumber(null);
         closeNumpadModal();
@@ -207,4 +210,5 @@ export function handleNumpadUndo() {
     }
     renderGrid();
     updateNumpadVisuals();
+    savePuzzleState(currentDate, userState.grid);
 }
