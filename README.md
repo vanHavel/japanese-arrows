@@ -20,4 +20,4 @@ Rules are represented as first order formulae. For example, if two arrows are di
 - the condition `exists p,q,i (next(p) = q ^ dir(p) = dir(q) ^ val(q) = i)`
 - the conclusion `only(p, [i,i+1])`
 
-For more details, check out [my blog post](TODO).
+For more details, check out [Using Robots to Generate Puzzles for Humans](https://vanhavel.github.io/2026/02/01/generating-puzzles.html).
