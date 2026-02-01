@@ -90,12 +90,12 @@ export function openNumpadModal(anchorElement) {
 
 export function closeNumpadModal() {
     const numpadModal = document.getElementById('numpad-modal');
+    const gameContainer = document.querySelector('.game-container');
 
-    const rightControls = document.querySelector('.right-controls');
-    if (rightControls) {
-        rightControls.style.pointerEvents = 'none';
+    if (gameContainer) {
+        gameContainer.style.pointerEvents = 'none';
         setTimeout(() => {
-            rightControls.style.pointerEvents = 'auto';
+            gameContainer.style.pointerEvents = 'auto';
         }, 300);
     }
 
