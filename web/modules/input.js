@@ -1,3 +1,12 @@
+/*
+ * Copyright (C) 2026 Lukas Huwald
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ */
+
 import { puzzle, userState, undoStack, MAX_UNDO_SIZE, currentDate } from './state.js';
 import { renderGrid, updateNumpadVisuals, updateDesktopNumpadVisuals } from './render.js';
 import { openNumpadModal, closeNumpadModal, canModalUndo } from './modals.js';

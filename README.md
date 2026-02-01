@@ -21,3 +21,9 @@ Rules are represented as first order formulae. For example, if two arrows are di
 - the conclusion `only(p, [i,i+1])`
 
 For more details, check out [Using Robots to Generate Puzzles for Humans](https://vanhavel.github.io/2026/02/01/generating-puzzles.html).
+
+# License
+
+Copyright (C) 2026 Lukas Huwald
+
+This project is licensed under the GNU General Public License v3.0. See the LICENSE file for details.
