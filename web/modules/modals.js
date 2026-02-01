@@ -99,15 +99,17 @@ export function closeNumpadModal() {
         }, 300);
     }
 
-    numpadModal.classList.add('hidden');
+    setTimeout(() => {
+        numpadModal.classList.add('hidden');
 
-    const numBtns = numpadModal.querySelectorAll('.mobile-num-btn.num-btn');
-    numBtns.forEach(btn => btn.classList.remove('active'));
+        const numBtns = numpadModal.querySelectorAll('.mobile-num-btn.num-btn');
+        numBtns.forEach(btn => btn.classList.remove('active'));
 
-    if (userState.selected) {
-        userState.selected = null;
-        renderGrid();
-    }
+        if (userState.selected) {
+            userState.selected = null;
+            renderGrid();
+        }
+    }, 50);
 }
 
 export function setupResetModal(resetPuzzle) {
