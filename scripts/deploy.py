@@ -21,7 +21,7 @@ from japanese_arrows.site_gen.assets import generate_all_arrow_assets  # noqa: E
 from japanese_arrows.site_gen.sync import sync_puzzles  # noqa: E402
 
 # This constant will be updated by a daily cronjob
-RELEASE_DATE = "2026-02-20"
+RELEASE_DATE = "2026-02-21"
 
 
 def cmd_build(args: argparse.Namespace) -> None:
