@@ -108,7 +108,7 @@ GENERATION_CONFIG: dict[str, DayConfig] = {
         "max_complexity": 7,
         "constraints": [
             FollowingArrowsFraction(min_fraction=0.1),
-            RuleComplexityFraction(complexity=7, min_count=1, max_count=4),
+            RuleComplexityFraction(complexity=6, min_count=2, max_count=6),
             RuleComplexityFraction(complexity=5, min_count=1),
             NumberFraction(number=1, max_fraction=0.4),
             NumberFraction(number=4, min_fraction=0.01),
@@ -117,8 +117,8 @@ GENERATION_CONFIG: dict[str, DayConfig] = {
     },
 }
 
-START_DATE = datetime.date(2026, 2, 9)
-END_DATE = datetime.date(2026, 2, 22)
+START_DATE = datetime.date(2026, 2, 23)
+END_DATE = datetime.date(2026, 5, 22)
 
 
 def main() -> None:
